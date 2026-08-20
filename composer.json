@@ -28,7 +28,7 @@
     },
     "require": {
         "php": "^8.2",
-        "statamic/cms": "^6.0"
+        "statamic/cms": "^6.27"
     },
     "require-dev": {
         "orchestra/testbench": "^10.0 || ^11.0",
