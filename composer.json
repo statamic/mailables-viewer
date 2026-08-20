@@ -1,0 +1,45 @@
+{
+    "name": "statamic/mailables-viewer",
+    "description": "Preview Laravel mailables from the Statamic Control Panel.",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Statamic\\MailablesViewer\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Mailables Viewer",
+            "description": "Preview Laravel mailables with sample data and send test emails."
+        },
+        "laravel": {
+            "providers": [
+                "Statamic\\MailablesViewer\\ServiceProvider"
+            ],
+            "aliases": {
+                "Mailables": "Statamic\\MailablesViewer\\Mailables"
+            }
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0 || ^11.0",
+        "phpunit/phpunit": "^11.5",
+        "laravel/pint": "^1.20"
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
