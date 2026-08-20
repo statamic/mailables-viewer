@@ -3,7 +3,7 @@
 
 > Preview Laravel mailables from the Statamic Control Panel.
 
-![Mailables Viewer](screenshot.png)
+![Mailables Viewer](screenshot.jpg)
 <!-- /statamic:hide -->
 
 ## Features
