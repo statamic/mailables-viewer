@@ -61,7 +61,10 @@ jobs:
           node-version: 20.19.0
           package-manager-cache: false
 
-      - name: Install dependencies
+      - name: Install Composer dependencies
+        run: composer install
+
+      - name: Install NPM dependencies
         run: npm ci
 
       - name: Build release assets
