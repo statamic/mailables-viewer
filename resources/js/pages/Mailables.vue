@@ -12,6 +12,7 @@ import {
 
 const props = defineProps({
     mailables: { type: Array, default: () => [] },
+    initialMailable: { type: String, default: null },
     previewUrl: { type: String, required: true },
     metaUrl: { type: String, required: true },
     sendUrl: { type: String, required: true },
@@ -19,7 +20,7 @@ const props = defineProps({
 });
 
 const search = ref('');
-const selected = ref(props.mailables[0] ?? null);
+const selected = ref(props.mailables.find((mailable) => mailable.class === props.initialMailable) ?? null);
 const injected = ref(cloneInjected(selected.value));
 const envelope = ref(cloneEnvelope(selected.value));
 const previewKey = ref(0);
@@ -156,8 +157,15 @@ function syncLiveValuesFromInjected() {
     liveValues.value = { ...injectedValues.value };
 }
 
+function syncUrl(mailable) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('mailable', mailable.class);
+    window.history.replaceState(window.history.state, '', url);
+}
+
 function select(mailable) {
     refreshEnvelopeDebounced.cancel();
+    syncUrl(mailable);
     selected.value = mailable;
     injected.value = cloneInjected(mailable);
     syncLiveValuesFromInjected();

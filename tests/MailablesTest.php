@@ -213,6 +213,61 @@ PHP);
     }
 
     #[Test]
+    public function index_preselects_the_mailable_named_in_the_query_string()
+    {
+        Mailables::register([WelcomeMail::class, QueuedMail::class]);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['mailable' => WelcomeMail::class]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('initialMailable', WelcomeMail::class)
+            );
+    }
+
+    #[Test]
+    public function index_preselects_the_first_mailable_without_a_query_string()
+    {
+        Mailables::register([WelcomeMail::class, QueuedMail::class]);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('initialMailable', QueuedMail::class)
+            );
+    }
+
+    #[Test]
+    public function index_preselects_the_first_mailable_for_a_mailable_it_does_not_have()
+    {
+        Mailables::register([WelcomeMail::class, QueuedMail::class]);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['mailable' => NotAMailable::class]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('initialMailable', QueuedMail::class)
+            );
+    }
+
+    #[Test]
+    public function index_preselects_nothing_when_there_are_no_mailables()
+    {
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('mailables', 0)
+                ->where('initialMailable', null)
+            );
+    }
+
+    #[Test]
     public function preview_returns_rendered_html()
     {
         Mailables::register(WelcomeMail::class);

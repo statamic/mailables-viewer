@@ -14,6 +14,7 @@
 - Lets you edit strings, numbers, bools, and datetimes and see the preview update
 - Shows subject, from, attachments, template, queue status, and where the mailable is referenced
 - Sends a test email with `sendNow()`
+- Opens a chosen mailable directly via `?mailable=`
 
 ## Installation
 
@@ -38,6 +39,16 @@ Mailables::register(\App\Mail\Billing\InvoiceReady::class);
 ```
 
 You can pass a class or an array of classes. The `Mailables` facade is also available as a Laravel alias.
+
+### Linking to a mailable
+
+Add `?mailable=` to the utility's URL to open the viewer with that mailable already selected:
+
+```php
+cp_route('utilities.mailables', ['mailable' => \App\Mail\OrderShipped::class]);
+```
+
+Useful for a "preview this email" button elsewhere in the Control Panel. A class the viewer does not have falls back to the first mailable in the list.
 
 ### Constructor data
 
