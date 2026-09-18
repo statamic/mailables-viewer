@@ -20,9 +20,7 @@ const props = defineProps({
 });
 
 const search = ref('');
-const selected = ref(
-    props.mailables.find((mailable) => mailable.class === props.initialMailable) ?? props.mailables[0] ?? null,
-);
+const selected = ref(props.mailables.find((mailable) => mailable.class === props.initialMailable) ?? null);
 const injected = ref(cloneInjected(selected.value));
 const envelope = ref(cloneEnvelope(selected.value));
 const previewKey = ref(0);

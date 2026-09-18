@@ -26,10 +26,11 @@ class ServiceProvider extends AddonServiceProvider
             $utilities->register('mailables')
                 ->inertia('mailables-viewer::Mailables', function () {
                     $mailables = Mailables::all()->values();
+                    $initialMailable = $mailables->firstWhere('class', request()->query('mailable')) ?? $mailables->first();
 
                     return [
                         'mailables' => $mailables,
-                        'initialMailable' => $mailables->firstWhere('class', request()->query('mailable'))['class'] ?? null,
+                        'initialMailable' => $initialMailable['class'] ?? null,
                         'previewUrl' => cp_route('utilities.mailables.preview'),
                         'metaUrl' => cp_route('utilities.mailables.meta'),
                         'sendUrl' => cp_route('utilities.mailables.send'),
