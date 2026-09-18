@@ -24,13 +24,18 @@ class ServiceProvider extends AddonServiceProvider
     {
         Utility::extend(function ($utilities) {
             $utilities->register('mailables')
-                ->inertia('mailables-viewer::Mailables', fn () => [
-                    'mailables' => Mailables::all()->values(),
-                    'previewUrl' => cp_route('utilities.mailables.preview'),
-                    'metaUrl' => cp_route('utilities.mailables.meta'),
-                    'sendUrl' => cp_route('utilities.mailables.send'),
-                    'defaultEmail' => User::current()?->email(),
-                ])
+                ->inertia('mailables-viewer::Mailables', function () {
+                    $mailables = Mailables::all()->values();
+
+                    return [
+                        'mailables' => $mailables,
+                        'initialMailable' => $mailables->firstWhere('class', request()->query('mailable'))['class'] ?? null,
+                        'previewUrl' => cp_route('utilities.mailables.preview'),
+                        'metaUrl' => cp_route('utilities.mailables.meta'),
+                        'sendUrl' => cp_route('utilities.mailables.send'),
+                        'defaultEmail' => User::current()?->email(),
+                    ];
+                })
                 ->title(__('mailables-viewer::messages.title'))
                 ->navTitle(__('mailables-viewer::messages.nav_title'))
                 ->icon('mail-inbox-content')
