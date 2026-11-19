@@ -8,12 +8,12 @@ use Statamic\Sites\Site as SiteInstance;
 
 class SiteContext
 {
-    public static function resolve(?string $handle): SiteInstance
+    public static function resolve(mixed $handle): SiteInstance
     {
         $sites = Site::authorized();
         $selected = Site::selected()->handle();
 
-        return $sites->get($handle ?? '') ?? $sites->get($selected) ?? $sites->first() ?? Site::default();
+        return $sites->get(is_string($handle) ? $handle : '') ?? $sites->get($selected) ?? $sites->first() ?? Site::default();
     }
 
     public static function run(SiteInstance $site, Closure $callback): mixed

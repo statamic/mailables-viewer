@@ -14,6 +14,7 @@ use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\LocalizedMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
 use Tests\Fixtures\Mail\QueuedMail;
@@ -265,6 +266,90 @@ PHP);
                 ->has('mailables', 0)
                 ->where('initialMailable', null)
             );
+    }
+
+    #[Test]
+    public function index_describes_mailables_in_the_selected_site_by_default()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'en')
+                ->has('sites', 2)
+                ->where('sites.1.handle', 'fr_ch')
+                ->where('sites.1.name', 'French')
+                ->where('sites.1.url', cp_route('utilities.mailables', ['site' => 'fr_ch']))
+                ->where('mailables.0.subject', 'Subject in en')
+            );
+    }
+
+    #[Test]
+    public function index_describes_mailables_in_the_site_named_in_the_query_string()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['site' => 'fr_ch']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'fr_ch')
+                ->where('mailables.0.subject', 'Subject in fr')
+            );
+    }
+
+    #[Test]
+    public function index_ignores_a_site_the_user_may_not_view()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+        $this->setTestRoles(['test' => ['access cp', 'access mailables utility', 'access en site']]);
+        $user = tap(User::make()->email('limited@example.com')->assignRole('test'))->save();
+
+        $this
+            ->actingAs($user)
+            ->get(cp_route('utilities.mailables', ['site' => 'fr_ch']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'en')
+                ->has('sites', 1)
+                ->where('mailables.0.subject', 'Subject in en')
+            );
+    }
+
+    #[Test]
+    public function index_has_one_site_and_the_cp_locale_on_a_single_site_install()
+    {
+        Mailables::register(LocalizedMail::class);
+        $expected = 'Subject in '.app()->getLocale();
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('sites', 1)
+                ->where('mailables.0.subject', $expected)
+            );
+    }
+
+    #[Test]
+    public function index_ignores_a_site_that_is_not_a_handle()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['site' => ['fr_ch']]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('site', 'en'));
     }
 
     #[Test]
