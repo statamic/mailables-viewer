@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Statamic\Facades\Site;
 use Statamic\MailablesViewer\ServiceProvider;
 use Statamic\Testing\AddonTestCase;
 
@@ -14,5 +15,15 @@ abstract class TestCase extends AddonTestCase
         parent::getEnvironmentSetUp($app);
 
         $app['config']->set('statamic.editions.pro', true);
+    }
+
+    protected function setSites(): void
+    {
+        config(['statamic.system.multisite' => true]);
+
+        Site::setSites([
+            'en' => ['name' => 'English', 'url' => '/', 'locale' => 'en_US'],
+            'fr_ch' => ['name' => 'French', 'url' => '/fr/', 'locale' => 'fr_CH', 'lang' => 'fr'],
+        ]);
     }
 }
