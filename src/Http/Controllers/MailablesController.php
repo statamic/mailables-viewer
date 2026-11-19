@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
-use Statamic\Facades\Site;
 use Statamic\MailablesViewer\Mailables;
 use Statamic\MailablesViewer\SiteContext;
 use Statamic\Sites\Site as SiteInstance;
@@ -68,17 +67,10 @@ class MailablesController
             'site' => 'nullable',
         ]);
 
-        $site = $this->site($request);
-
-        SiteContext::run($site, function () use ($request, $site) {
-            $mail = Mail::to($request->email);
-
-            if (Site::hasMultiple()) {
-                $mail->locale($site->lang());
-            }
-
-            $mail->sendNow(Mailables::make($request->mailable, $this->values($request)));
-        });
+        SiteContext::run(
+            $this->site($request),
+            fn () => Mail::to($request->email)->sendNow(Mailables::make($request->mailable, $this->values($request)))
+        );
 
         return back()->withSuccess(__('Test email sent.'));
     }

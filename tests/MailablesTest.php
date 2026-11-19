@@ -14,6 +14,7 @@ use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\FixedLocaleMail;
 use Tests\Fixtures\Mail\LocalizedMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
@@ -516,25 +517,50 @@ PHP);
     }
 
     #[Test]
-    public function send_sends_in_the_requested_site()
+    public function send_renders_in_the_requested_site()
     {
-        Mail::fake();
         $this->setSites();
-        Mailables::register([LocalizedMail::class, QueuedMail::class]);
+        Mailables::register(LocalizedMail::class);
 
-        foreach ([LocalizedMail::class, QueuedMail::class] as $class) {
-            $this
-                ->actingAs($this->superUser())
-                ->from(cp_route('utilities.mailables'))
-                ->post(cp_route('utilities.mailables.send'), [
-                    'email' => 'tester@example.com',
-                    'mailable' => $class,
-                    'site' => 'fr_ch',
-                ])
-                ->assertRedirect(cp_route('utilities.mailables'));
+        $this
+            ->actingAs($this->superUser())
+            ->from(cp_route('utilities.mailables'))
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+                'site' => 'fr_ch',
+            ])
+            ->assertRedirect(cp_route('utilities.mailables'));
 
-            Mail::assertSent($class, fn ($mail) => $mail->locale === 'fr');
-        }
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in fr', $sent->getSubject());
+        $this->assertStringContainsString('Site fr_ch in fr', $sent->getHtmlBody());
+    }
+
+    #[Test]
+    public function send_and_preview_keep_a_locale_the_mailable_sets_itself()
+    {
+        $this->setSites();
+        $this->app['view']->addLocation(__DIR__.'/Fixtures/views');
+        Mailables::register(FixedLocaleMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => FixedLocaleMail::class, 'site' => 'fr_ch']))
+            ->assertSee('Rendered in de', false);
+
+        $this
+            ->actingAs($this->superUser())
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => FixedLocaleMail::class,
+                'site' => 'fr_ch',
+            ]);
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertStringContainsString('Rendered in de', $sent->getHtmlBody());
     }
 
     #[Test]

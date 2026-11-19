@@ -23,7 +23,11 @@ class SiteContext
         }
 
         $originalLocale = app()->getLocale();
-        $originalSite = Site::current();
+
+        // Read the site that was set explicitly, if any: restoring the lazily
+        // resolved one would pin it for whatever runs after the callback.
+        $sites = Site::getFacadeRoot();
+        $originalSite = (fn () => $this->current)->call($sites);
 
         app()->setLocale($site->lang());
         Site::setCurrent($site->handle());
@@ -32,7 +36,7 @@ class SiteContext
             return $callback();
         } finally {
             app()->setLocale($originalLocale);
-            Site::setCurrent($originalSite->handle());
+            Site::setCurrent($originalSite?->handle());
         }
     }
 
