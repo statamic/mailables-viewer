@@ -15,6 +15,7 @@
 - Shows subject, from, attachments, template, queue status, and where the mailable is referenced
 - Sends a test email with `sendNow()`
 - Opens a chosen mailable directly via `?mailable=`
+- Previews and sends in any site of a multisite install
 
 ## Installation
 
@@ -49,6 +50,18 @@ cp_route('utilities.mailables', ['mailable' => \App\Mail\OrderShipped::class]);
 ```
 
 Useful for a "preview this email" button elsewhere in the Control Panel. A class the viewer does not have falls back to the first mailable in the list.
+
+### Multisite
+
+On a multisite install the viewer opens in the site selected in the Control Panel. The site dropdown, shown when you can access more than one site, reloads the viewer in that site: mailables are built, previewed and sent with the app locale set to the site's `lang` and with the site as the current one, so translations, globals and tags resolve the way they do on that site's front end.
+
+Add `?site=` to link to a site. It combines with `?mailable=`:
+
+```php
+cp_route('utilities.mailables', ['site' => 'french', 'mailable' => \App\Mail\OrderShipped::class]);
+```
+
+A site you cannot access, or one that does not exist, falls back to the selected site. Single-site installs are unaffected.
 
 ### Constructor data
 
