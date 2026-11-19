@@ -477,6 +477,83 @@ PHP);
     }
 
     #[Test]
+    public function preview_renders_in_the_requested_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertSee('Site fr_ch in fr', false);
+    }
+
+    #[Test]
+    public function preview_falls_back_to_the_selected_site_for_an_unknown_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'nope']))
+            ->assertOk()
+            ->assertSee('Site en in en', false);
+    }
+
+    #[Test]
+    public function meta_returns_the_envelope_of_the_requested_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->getJson(cp_route('utilities.mailables.meta', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertJsonPath('subject', 'Subject in fr');
+    }
+
+    #[Test]
+    public function send_sends_in_the_requested_site()
+    {
+        Mail::fake();
+        $this->setSites();
+        Mailables::register([LocalizedMail::class, QueuedMail::class]);
+
+        foreach ([LocalizedMail::class, QueuedMail::class] as $class) {
+            $this
+                ->actingAs($this->superUser())
+                ->from(cp_route('utilities.mailables'))
+                ->post(cp_route('utilities.mailables.send'), [
+                    'email' => 'tester@example.com',
+                    'mailable' => $class,
+                    'site' => 'fr_ch',
+                ])
+                ->assertRedirect(cp_route('utilities.mailables'));
+
+            Mail::assertSent($class, fn ($mail) => $mail->locale === 'fr');
+        }
+    }
+
+    #[Test]
+    public function send_leaves_the_locale_alone_on_a_single_site_install()
+    {
+        Mail::fake();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+            ]);
+
+        Mail::assertSent(LocalizedMail::class, fn ($mail) => $mail->locale === null);
+    }
+
+    #[Test]
     public function routes_are_forbidden_without_permission()
     {
         $this->setTestRoles(['test' => ['access cp']]);

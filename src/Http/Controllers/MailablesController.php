@@ -8,7 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
+use Statamic\Facades\Site;
 use Statamic\MailablesViewer\Mailables;
+use Statamic\MailablesViewer\SiteContext;
+use Statamic\Sites\Site as SiteInstance;
 
 use function Statamic\trans as __;
 
@@ -23,8 +26,12 @@ class MailablesController
         }
 
         try {
-            return response(Mailables::make($class, $this->values($request))->render())
-                ->header('Content-Type', 'text/html; charset=UTF-8');
+            $html = SiteContext::run(
+                $this->site($request),
+                fn () => Mailables::make($class, $this->values($request))->render()
+            );
+
+            return response($html)->header('Content-Type', 'text/html; charset=UTF-8');
         } catch (\Throwable $e) {
             return response($this->errorPage($e), 200)
                 ->header('Content-Type', 'text/html; charset=UTF-8');
@@ -39,7 +46,10 @@ class MailablesController
             abort(404);
         }
 
-        $described = Mailables::describe($class, $this->values($request));
+        $described = SiteContext::run(
+            $this->site($request),
+            fn () => Mailables::describe($class, $this->values($request))
+        );
 
         return response()->json([
             'subject' => $described['subject'],
@@ -55,11 +65,27 @@ class MailablesController
             'email' => 'required|email',
             'mailable' => ['required', 'string', Rule::in(Mailables::classes()->all())],
             'values' => 'array',
+            'site' => 'nullable',
         ]);
 
-        Mail::to($request->email)->sendNow(Mailables::make($request->mailable, $this->values($request)));
+        $site = $this->site($request);
+
+        SiteContext::run($site, function () use ($request, $site) {
+            $mail = Mail::to($request->email);
+
+            if (Site::hasMultiple()) {
+                $mail->locale($site->lang());
+            }
+
+            $mail->sendNow(Mailables::make($request->mailable, $this->values($request)));
+        });
 
         return back()->withSuccess(__('Test email sent.'));
+    }
+
+    protected function site(Request $request): SiteInstance
+    {
+        return SiteContext::resolve($request->input('site'));
     }
 
     protected function values(Request $request): array
