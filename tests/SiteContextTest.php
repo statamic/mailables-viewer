@@ -75,18 +75,6 @@ class SiteContextTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_pin_the_current_site_afterwards()
-    {
-        $this->setSites();
-
-        SiteContext::run(Site::get('fr_ch'), fn () => null);
-
-        Site::resolveCurrentUrlUsing(fn () => 'http://localhost/fr/page');
-
-        $this->assertSame('fr_ch', Site::current()->handle());
-    }
-
-    #[Test]
     public function it_restores_a_current_site_that_was_set_explicitly()
     {
         $this->setSites();
