@@ -12,6 +12,7 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
+use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 use Statamic\Contracts\Auth\User as UserContract;
 use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Contracts\Forms\Form as FormContract;
@@ -32,17 +33,23 @@ class MailableFactory
             return $reflection->newInstance();
         }
 
+        $examples = is_subclass_of($class, HasPreviewExamples::class) ? $class::previewExamples() : [];
+
         $args = collect($constructor->getParameters())
-            ->map(fn (ReflectionParameter $parameter) => $this->resolveParameter($parameter, $overrides))
+            ->map(fn (ReflectionParameter $parameter) => $this->resolveParameter($parameter, $overrides, $examples))
             ->all();
 
         return $reflection->newInstanceArgs($args);
     }
 
-    protected function resolveParameter(ReflectionParameter $parameter, array $overrides = []): mixed
+    protected function resolveParameter(ReflectionParameter $parameter, array $overrides = [], array $examples = []): mixed
     {
         if (array_key_exists($parameter->getName(), $overrides) && $this->isOverridable($parameter)) {
             return $this->castOverride($parameter, $overrides[$parameter->getName()]);
+        }
+
+        if (array_key_exists($parameter->getName(), $examples)) {
+            return $examples[$parameter->getName()];
         }
 
         if ($parameter->isDefaultValueAvailable()) {

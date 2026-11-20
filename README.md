@@ -65,6 +65,31 @@ Objects and arrays stay read-only. Edit a scalar and the preview plus envelope (
 
 Sample strings are guessed from the parameter name (`email` → `preview@example.com`, `name` → `Jane Doe`, `url` → `https://example.com`).
 
+#### Your own example values
+
+Where the sample values fall short, such as an array of order lines that would otherwise be empty, a mailable can name its own. Implement `HasPreviewExamples` and return the values keyed by constructor parameter name:
+
+```php
+use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
+
+class OrderShipped extends Mailable implements HasPreviewExamples
+{
+    public function __construct(
+        public string $customer,
+        public array $lines = [],
+    ) {}
+
+    public static function previewExamples(): array
+    {
+        return [
+            'lines' => [['sku' => 'A-1', 'quantity' => 2]],
+        ];
+    }
+}
+```
+
+An example wins over the parameter's default and the guessed sample; a value you edit in Details wins over the example. Parameters you leave out are filled as before.
+
 ### Sending tests
 
 Pick a mailable, optionally tweak the editable values, enter an address, and send. Tests use `sendNow()` so queued mailables still go out immediately.

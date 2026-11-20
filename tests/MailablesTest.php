@@ -14,6 +14,7 @@ use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\ExampleMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
 use Tests\Fixtures\Mail\QueuedMail;
@@ -101,6 +102,29 @@ class MailablesTest extends TestCase
         $this->assertFalse($mailable->active);
         $this->assertSame('2026-08-19 20:48:00', $mailable->when->format('Y-m-d H:i:s'));
         $this->assertSame([], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_uses_a_mailables_preview_examples_before_defaults_and_fakes()
+    {
+        $mailable = (new MailableFactory)->make(ExampleMail::class);
+
+        $this->assertSame('Ada Lovelace', $mailable->name);
+        $this->assertSame('preview@example.com', $mailable->email);
+        $this->assertSame(3, $mailable->count);
+        $this->assertSame([['sku' => 'A-1', 'quantity' => 2]], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_prefers_an_override_to_a_preview_example()
+    {
+        $mailable = (new MailableFactory)->make(ExampleMail::class, [
+            'name' => 'Grace Hopper',
+            'items' => 'not-overridable',
+        ]);
+
+        $this->assertSame('Grace Hopper', $mailable->name);
+        $this->assertSame([['sku' => 'A-1', 'quantity' => 2]], $mailable->items);
     }
 
     #[Test]
