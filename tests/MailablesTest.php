@@ -135,6 +135,7 @@ class MailablesTest extends TestCase
         $this->assertTrue($constructor['name']['example']);
         $this->assertTrue($constructor['items']['example']);
         $this->assertFalse($constructor['email']['example']);
+        $this->assertSame(3, $constructor['count']['value']);
 
         $scalar = collect(Mailables::describe(ScalarMail::class)['details']['constructor']);
 
@@ -148,6 +149,27 @@ class MailablesTest extends TestCase
 
         $this->assertSame('["new","sale"]', $constructor['labels']['value']);
         $this->assertSame('stdClass', $constructor['plain']['value']);
+    }
+
+    #[Test]
+    public function an_untyped_param_holding_an_array_example_is_not_editable()
+    {
+        Mailables::register(ExampleMail::class);
+
+        $extras = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->firstWhere('name', 'extras');
+
+        $this->assertFalse($extras['editable']);
+        $this->assertNull($extras['input']);
+        $this->assertSame('["gift wrap"]', $extras['value']);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', [
+                'mailable' => ExampleMail::class,
+                'values' => ['name' => 'Grace Hopper'],
+            ]))
+            ->assertOk()
+            ->assertSee('Grace Hopper ordered 1 item(s) with gift wrap.', false);
     }
 
     #[Test]

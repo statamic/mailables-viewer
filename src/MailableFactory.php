@@ -12,7 +12,6 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
-use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 use Statamic\Contracts\Auth\User as UserContract;
 use Statamic\Contracts\Entries\Entry as EntryContract;
 use Statamic\Contracts\Forms\Form as FormContract;
@@ -21,6 +20,7 @@ use Statamic\Facades\Entry;
 use Statamic\Facades\Form;
 use Statamic\Facades\FormSubmission;
 use Statamic\Facades\User;
+use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 
 class MailableFactory
 {

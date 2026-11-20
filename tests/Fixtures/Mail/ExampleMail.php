@@ -17,6 +17,7 @@ class ExampleMail extends Mailable implements HasPreviewExamples
         public array $items = [],
         public ?Collection $labels = null,
         public ?object $plain = null,
+        public $extras = [],
     ) {}
 
     public static function previewExamples(): array
@@ -27,6 +28,7 @@ class ExampleMail extends Mailable implements HasPreviewExamples
             'items' => [['sku' => 'A-1', 'quantity' => 2]],
             'labels' => collect(['new', 'sale']),
             'plain' => new \stdClass,
+            'extras' => ['gift wrap'],
             'unknown' => 'ignored',
         ];
     }
@@ -38,6 +40,6 @@ class ExampleMail extends Mailable implements HasPreviewExamples
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>'.$this->name.' ordered '.count($this->items).' item(s).</p>');
+        return new Content(htmlString: '<p>'.$this->name.' ordered '.count($this->items).' item(s) with '.implode(', ', $this->extras).'.</p>');
     }
 }

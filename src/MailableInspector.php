@@ -127,8 +127,8 @@ class MailableInspector
             ->map(function (ReflectionParameter $parameter) use ($mailable, $examples) {
                 $name = $parameter->getName();
                 $type = $this->namedTypeName($parameter->getType());
-                $input = $this->inputFor($parameter);
                 $value = $mailable->{$name} ?? null;
+                $input = $this->fitsItsInput($parameter, $value) ? $this->inputFor($parameter) : null;
 
                 return [
                     'name' => $name,
@@ -141,6 +141,15 @@ class MailableInspector
                 ];
             })
             ->all();
+    }
+
+    /**
+     * An untyped parameter gets a text input, which only a value that fits one may use:
+     * an array or object an example put there would come back from the page as a string.
+     */
+    protected function fitsItsInput(ReflectionParameter $parameter, mixed $value): bool
+    {
+        return $parameter->getType() !== null || $value === null || is_scalar($value);
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
