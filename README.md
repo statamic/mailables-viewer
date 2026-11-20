@@ -61,7 +61,7 @@ The viewer instantiates each mailable with sample values so you can preview it w
 | Eloquent models | Factory `make()`, then `query()->first()`, then `::make()` |
 | Anything else | Resolved from the container |
 
-Objects and arrays stay read-only. Edit a scalar and the preview plus envelope (subject, from, attachments) refresh live.
+Objects and arrays stay read-only: an array shows as JSON, an object as its class name, followed by its contents where it is `Arrayable` or `JsonSerializable` (a collection, a model). Edit a scalar and the preview plus envelope (subject, from, attachments) refresh live.
 
 Sample strings are guessed from the parameter name (`email` → `preview@example.com`, `name` → `Jane Doe`, `url` → `https://example.com`).
 

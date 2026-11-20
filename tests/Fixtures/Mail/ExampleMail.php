@@ -5,6 +5,7 @@ namespace Tests\Fixtures\Mail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Support\Collection;
 use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 
 class ExampleMail extends Mailable implements HasPreviewExamples
@@ -14,6 +15,8 @@ class ExampleMail extends Mailable implements HasPreviewExamples
         public string $email,
         public int $count = 1,
         public array $items = [],
+        public ?Collection $labels = null,
+        public ?object $plain = null,
     ) {}
 
     public static function previewExamples(): array
@@ -22,6 +25,8 @@ class ExampleMail extends Mailable implements HasPreviewExamples
             'name' => 'Ada Lovelace',
             'count' => 3,
             'items' => [['sku' => 'A-1', 'quantity' => 2]],
+            'labels' => collect(['new', 'sale']),
+            'plain' => new \stdClass,
             'unknown' => 'ignored',
         ];
     }

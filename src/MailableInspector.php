@@ -4,11 +4,13 @@ namespace Statamic\MailablesViewer;
 
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use JsonSerializable;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
@@ -370,7 +372,7 @@ class MailableInspector
         }
 
         if (is_object($value)) {
-            return $value::class;
+            return $this->stringifyObject($value);
         }
 
         if (is_array($value)) {
@@ -378,5 +380,27 @@ class MailableInspector
         }
 
         return get_debug_type($value);
+    }
+
+    /**
+     * An object that knows its array or JSON form shows it after its class name.
+     */
+    protected function stringifyObject(object $value): string
+    {
+        if (! $value instanceof Arrayable && ! $value instanceof JsonSerializable) {
+            return $value::class;
+        }
+
+        try {
+            $json = json_encode($value instanceof Arrayable ? $value->toArray() : $value);
+        } catch (\Throwable) {
+            return $value::class;
+        }
+
+        if ($json === false) {
+            return $value::class;
+        }
+
+        return $value::class.' '.Str::limit($json, 500);
     }
 }

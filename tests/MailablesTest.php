@@ -142,6 +142,15 @@ class MailablesTest extends TestCase
     }
 
     #[Test]
+    public function details_show_an_arrayable_objects_contents_after_its_class()
+    {
+        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertSame('Illuminate\\Support\\Collection ["new","sale"]', $constructor['labels']['value']);
+        $this->assertSame('stdClass', $constructor['plain']['value']);
+    }
+
+    #[Test]
     public function factory_resolves_statamic_user_and_container_classes()
     {
         $user = tap(User::make()->email('jane@example.com'))->save();
