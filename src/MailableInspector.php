@@ -383,7 +383,7 @@ class MailableInspector
     }
 
     /**
-     * An object that knows its array or JSON form shows it after its class name.
+     * An object that knows its array or JSON form shows that, any other its class name.
      */
     protected function stringifyObject(object $value): string
     {
@@ -401,6 +401,6 @@ class MailableInspector
             return $value::class;
         }
 
-        return $value::class.' '.Str::limit($json, 500);
+        return Str::limit($json, 500);
     }
 }

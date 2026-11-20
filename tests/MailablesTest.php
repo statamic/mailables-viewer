@@ -142,11 +142,11 @@ class MailablesTest extends TestCase
     }
 
     #[Test]
-    public function details_show_an_arrayable_objects_contents_after_its_class()
+    public function details_show_an_arrayable_objects_contents_and_any_other_objects_class()
     {
         $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
 
-        $this->assertSame('Illuminate\\Support\\Collection ["new","sale"]', $constructor['labels']['value']);
+        $this->assertSame('["new","sale"]', $constructor['labels']['value']);
         $this->assertSame('stdClass', $constructor['plain']['value']);
     }
 
