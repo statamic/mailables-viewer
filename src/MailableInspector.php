@@ -141,14 +141,18 @@ class MailableInspector
     }
 
     /**
-     * An enum's cases as the options of a select, named and valued by case name.
+     * An enum's cases as the options of a select: valued by case name, labelled by it too,
+     * a backed case with its value after it ("Mr (0)").
      *
      * @param  class-string<\UnitEnum>  $enum
      * @return array<int, array{label: string, value: string}>
      */
     protected function enumOptions(string $enum): array
     {
-        return array_map(fn (\UnitEnum $case) => ['label' => $case->name, 'value' => $case->name], $enum::cases());
+        return array_map(fn (\UnitEnum $case) => [
+            'label' => $case instanceof \BackedEnum ? "{$case->name} ({$case->value})" : $case->name,
+            'value' => $case->name,
+        ], $enum::cases());
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
