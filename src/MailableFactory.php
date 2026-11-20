@@ -218,7 +218,7 @@ class MailableFactory
      *
      * @return class-string<\UnitEnum>|null
      */
-    public function enumType(ReflectionParameter $parameter): ?string
+    protected function enumType(ReflectionParameter $parameter): ?string
     {
         $type = $this->namedTypeName($parameter->getType());
 
