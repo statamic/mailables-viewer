@@ -57,12 +57,12 @@ The viewer instantiates each mailable with sample values so you can preview it w
 | Type | What happens |
 | --- | --- |
 | `string`, `int`, `float`, `bool`, datetimes | Fake sample values you can edit in Details |
-| Enums | The first case, with the others to pick from in Details (a backed case shows its value: `Mr (0)`) |
+| Enums | The first case, with the others to pick from in Details (a backed case shows its value: `Formal (formal)`) |
 | Statamic `User`, `Entry`, `Form`, `Submission` | First available record |
 | Eloquent models | Factory `make()`, then `query()->first()`, then `::make()` |
 | Anything else | Resolved from the container |
 
-Objects and arrays stay read-only. Edit a scalar and the preview plus envelope (subject, from, attachments) refresh live.
+Other objects and arrays stay read-only. Edit a scalar or pick an enum case and the preview plus envelope (subject, from, attachments) refresh live.
 
 Sample strings are guessed from the parameter name (`email` → `preview@example.com`, `name` → `Jane Doe`, `url` → `https://example.com`).
 

@@ -14,6 +14,7 @@ class EnumMail extends Mailable
         public Tone $tone,
         public Channel $channel = Channel::Post,
         public ?Tone $reply = null,
+        public ?Channel $copy = Channel::Email,
     ) {}
 
     public function envelope(): Envelope
@@ -23,6 +24,6 @@ class EnumMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(htmlString: '<p>'.$this->tone->name.' by '.$this->channel->name.'</p>');
+        return new Content(htmlString: '<p>'.$this->tone->name.' by '.$this->channel->name.', copy by '.($this->copy->name ?? 'nothing').'</p>');
     }
 }
