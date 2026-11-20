@@ -118,9 +118,4 @@ class SiteContextTest extends TestCase
             ['handle' => 'fr_ch', 'name' => 'French', 'url' => cp_route('utilities.mailables', ['site' => 'fr_ch'])],
         ], SiteContext::options());
     }
-
-    private function superUser()
-    {
-        return tap(User::make()->email('jane@example.com')->makeSuper())->save();
-    }
 }

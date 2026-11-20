@@ -64,7 +64,6 @@ class MailablesController
             'email' => 'required|email',
             'mailable' => ['required', 'string', Rule::in(Mailables::classes()->all())],
             'values' => 'array',
-            'site' => 'nullable',
         ]);
 
         SiteContext::run(

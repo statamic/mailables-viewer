@@ -566,8 +566,8 @@ PHP);
     #[Test]
     public function send_leaves_the_locale_alone_on_a_single_site_install()
     {
-        Mail::fake();
         Mailables::register(LocalizedMail::class);
+        app()->setLocale('de');
 
         $this
             ->actingAs($this->superUser())
@@ -576,7 +576,42 @@ PHP);
                 'mailable' => LocalizedMail::class,
             ]);
 
-        Mail::assertSent(LocalizedMail::class, fn ($mail) => $mail->locale === null);
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in de', $sent->getSubject());
+    }
+
+    #[Test]
+    public function preview_meta_and_send_ignore_a_site_the_user_may_not_view()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+        $this->setTestRoles(['test' => ['access cp', 'access mailables utility', 'access en site']]);
+        $user = tap(User::make()->email('limited@example.com')->assignRole('test'))->save();
+
+        $this
+            ->actingAs($user)
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertSee('Site en in en', false);
+
+        $this
+            ->actingAs($user)
+            ->getJson(cp_route('utilities.mailables.meta', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertJson(['subject' => 'Subject in en']);
+
+        $this
+            ->actingAs($user)
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+                'site' => 'fr_ch',
+            ]);
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in en', $sent->getSubject());
     }
 
     #[Test]
@@ -626,10 +661,5 @@ PHP);
             ->actingAs($user)
             ->get(cp_route('utilities.mailables'))
             ->assertOk();
-    }
-
-    private function superUser()
-    {
-        return tap(User::make()->email('jane@example.com')->makeSuper())->save();
     }
 }

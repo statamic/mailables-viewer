@@ -53,7 +53,7 @@ Useful for a "preview this email" button elsewhere in the Control Panel. A class
 
 ### Multisite
 
-On a multisite install the viewer opens in the site selected in the Control Panel. The site dropdown, shown when you can access more than one site, reloads the viewer in that site: mailables are built, previewed and sent with the app locale set to the site's `lang` and with the site as the current one, so translations, globals and tags resolve the way they do on that site's front end.
+On a multisite install the viewer opens in the site selected in the Control Panel. The site dropdown, shown when you can access more than one site, reloads the viewer in that site: mailables are built, previewed and sent with the app locale set to the site's `lang` and with the site as the current one, so translations, globals and tags resolve in that site.
 
 Add `?site=` to link to a site. It combines with `?mailable=`:
 
