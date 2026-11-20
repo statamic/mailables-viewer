@@ -128,6 +128,20 @@ class MailablesTest extends TestCase
     }
 
     #[Test]
+    public function details_mark_the_constructor_params_a_preview_example_filled()
+    {
+        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertTrue($constructor['name']['example']);
+        $this->assertTrue($constructor['items']['example']);
+        $this->assertFalse($constructor['email']['example']);
+
+        $scalar = collect(Mailables::describe(ScalarMail::class)['details']['constructor']);
+
+        $this->assertFalse($scalar->contains('example', true));
+    }
+
+    #[Test]
     public function factory_resolves_statamic_user_and_container_classes()
     {
         $user = tap(User::make()->email('jane@example.com'))->save();

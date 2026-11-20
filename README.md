@@ -88,7 +88,7 @@ class OrderShipped extends Mailable implements HasPreviewExamples
 }
 ```
 
-An example wins over the parameter's default and the guessed sample; a value you edit in Details wins over the example. Parameters you leave out are filled as before.
+An example wins over the parameter's default and the guessed sample; a value you edit in Details wins over the example. Parameters you leave out are filled as before. In Details, a value that comes from `previewExamples()` carries an "Example from code" badge until you edit it.
 
 ### Sending tests
 
