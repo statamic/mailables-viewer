@@ -132,7 +132,11 @@ const detailRows = computed(() => {
 });
 
 function cloneInjected(mailable) {
-    return (mailable?.details?.constructor ?? []).map((param) => ({ ...param }));
+    return (mailable?.details?.constructor ?? []).map((param) => ({ ...param, initial: param.value }));
+}
+
+function isExample(param) {
+    return param.example && String(param.value) === String(param.initial);
 }
 
 function cloneEnvelope(mailable) {
@@ -367,6 +371,12 @@ watch(injectedValues, () => {
                                         <TableRow v-for="param in injected" :key="param.name">
                                             <TableCell class="w-40 align-middle">
                                                 <Text variant="code" size="sm" :text="`$${param.name}`" />
+                                                <Badge
+                                                    v-if="isExample(param)"
+                                                    size="sm"
+                                                    :text="__('Example from code')"
+                                                    class="mt-1"
+                                                />
                                             </TableCell>
                                             <TableCell>
                                                 <Switch

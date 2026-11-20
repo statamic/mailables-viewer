@@ -19,7 +19,7 @@ use Symfony\Component\Finder\SplFileInfo;
 class MailableInspector
 {
     /**
-     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
+     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, example: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
      */
     public function inspect(string $class, ?Mailable $mailable = null): array
     {
@@ -108,7 +108,7 @@ class MailableInspector
     }
 
     /**
-     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool}>
+     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, example: bool}>
      */
     protected function constructor(Mailable $mailable): array
     {
@@ -118,12 +118,14 @@ class MailableInspector
             return [];
         }
 
+        $examples = Mailables::examples($mailable::class);
+
         return collect($constructor->getParameters())
-            ->map(function (ReflectionParameter $parameter) use ($mailable) {
+            ->map(function (ReflectionParameter $parameter) use ($mailable, $examples) {
                 $name = $parameter->getName();
                 $type = $this->namedTypeName($parameter->getType());
-                $input = $this->inputFor($parameter);
                 $value = $mailable->{$name} ?? null;
+                $input = $this->fitsItsInput($parameter, $value) ? $this->inputFor($parameter) : null;
 
                 return [
                     'name' => $name,
@@ -132,9 +134,19 @@ class MailableInspector
                     'value' => $input ? $this->editValue($value, $input) : $this->stringify($value),
                     'input' => $input,
                     'editable' => $input !== null,
+                    'example' => array_key_exists($name, $examples),
                 ];
             })
             ->all();
+    }
+
+    /**
+     * An untyped parameter gets a text input, which only a value that fits one may use:
+     * an array or object an example put there would come back from the page as a string.
+     */
+    protected function fitsItsInput(ReflectionParameter $parameter, mixed $value): bool
+    {
+        return $parameter->getType() !== null || $value === null || is_scalar($value);
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
@@ -366,7 +378,7 @@ class MailableInspector
         }
 
         if (is_object($value)) {
-            return $value::class;
+            return $this->stringifyObject($value);
         }
 
         if (is_array($value)) {
@@ -374,5 +386,27 @@ class MailableInspector
         }
 
         return get_debug_type($value);
+    }
+
+    /**
+     * A collection shows its contents like an array does, any other object its class name.
+     */
+    protected function stringifyObject(object $value): string
+    {
+        if (! $value instanceof Collection) {
+            return $value::class;
+        }
+
+        try {
+            $json = json_encode($value->toArray());
+        } catch (\Throwable) {
+            return $value::class;
+        }
+
+        if ($json === false) {
+            return $value::class;
+        }
+
+        return Str::limit($json, 500);
     }
 }

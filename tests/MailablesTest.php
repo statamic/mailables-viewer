@@ -14,6 +14,7 @@ use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\ExampleMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
 use Tests\Fixtures\Mail\QueuedMail;
@@ -101,6 +102,84 @@ class MailablesTest extends TestCase
         $this->assertFalse($mailable->active);
         $this->assertSame('2026-08-19 20:48:00', $mailable->when->format('Y-m-d H:i:s'));
         $this->assertSame([], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_uses_a_mailables_preview_examples_before_defaults_and_fakes()
+    {
+        $mailable = (new MailableFactory)->make(ExampleMail::class);
+
+        $this->assertSame('Ada Lovelace', $mailable->name);
+        $this->assertSame('preview@example.com', $mailable->email);
+        $this->assertSame(3, $mailable->count);
+        $this->assertSame([['sku' => 'A-1', 'quantity' => 2]], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_prefers_an_override_to_a_preview_example()
+    {
+        $mailable = (new MailableFactory)->make(ExampleMail::class, [
+            'name' => 'Grace Hopper',
+            'items' => 'not-overridable',
+        ]);
+
+        $this->assertSame('Grace Hopper', $mailable->name);
+        $this->assertSame([['sku' => 'A-1', 'quantity' => 2]], $mailable->items);
+    }
+
+    #[Test]
+    public function details_mark_the_constructor_params_a_preview_example_filled()
+    {
+        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertTrue($constructor['name']['example']);
+        $this->assertTrue($constructor['items']['example']);
+        $this->assertFalse($constructor['email']['example']);
+        $this->assertSame(3, $constructor['count']['value']);
+
+        $scalar = collect(Mailables::describe(ScalarMail::class)['details']['constructor']);
+
+        $this->assertFalse($scalar->contains('example', true));
+    }
+
+    #[Test]
+    public function details_show_a_collections_contents_and_any_other_objects_class()
+    {
+        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertSame('["new","sale"]', $constructor['labels']['value']);
+        $this->assertSame('stdClass', $constructor['plain']['value']);
+    }
+
+    #[Test]
+    public function a_mailables_preview_examples_are_asked_once()
+    {
+        ExampleMail::$asked = 0;
+
+        Mailables::describe(ExampleMail::class);
+
+        $this->assertSame(1, ExampleMail::$asked);
+    }
+
+    #[Test]
+    public function an_untyped_param_holding_an_array_example_is_not_editable()
+    {
+        Mailables::register(ExampleMail::class);
+
+        $extras = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->firstWhere('name', 'extras');
+
+        $this->assertFalse($extras['editable']);
+        $this->assertNull($extras['input']);
+        $this->assertSame('["gift wrap"]', $extras['value']);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', [
+                'mailable' => ExampleMail::class,
+                'values' => ['name' => 'Grace Hopper'],
+            ]))
+            ->assertOk()
+            ->assertSee('Grace Hopper ordered 1 item(s) with gift wrap.', false);
     }
 
     #[Test]
