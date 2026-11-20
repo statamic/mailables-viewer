@@ -57,6 +57,7 @@ The viewer instantiates each mailable with sample values so you can preview it w
 | Type | What happens |
 | --- | --- |
 | `string`, `int`, `float`, `bool`, datetimes | Fake sample values you can edit in Details |
+| Enums | The first case, with the others to pick from in Details |
 | Statamic `User`, `Entry`, `Form`, `Submission` | First available record |
 | Eloquent models | Factory `make()`, then `query()->first()`, then `::make()` |
 | Anything else | Resolved from the container |
