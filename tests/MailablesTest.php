@@ -12,8 +12,11 @@ use PHPUnit\Framework\Attributes\Test;
 use Statamic\Facades\User;
 use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
+use Tests\Fixtures\Enums\Channel;
+use Tests\Fixtures\Enums\Tone;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\EnumMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
 use Tests\Fixtures\Mail\QueuedMail;
@@ -101,6 +104,64 @@ class MailablesTest extends TestCase
         $this->assertFalse($mailable->active);
         $this->assertSame('2026-08-19 20:48:00', $mailable->when->format('Y-m-d H:i:s'));
         $this->assertSame([], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_picks_an_enum_case_by_its_name()
+    {
+        $mailable = (new MailableFactory)->make(EnumMail::class, [
+            'tone' => 'Casual',
+            'channel' => 'Email',
+            'reply' => 'Formal',
+        ]);
+
+        $this->assertSame(Tone::Casual, $mailable->tone);
+        $this->assertSame(Channel::Email, $mailable->channel);
+        $this->assertSame(Tone::Formal, $mailable->reply);
+    }
+
+    #[Test]
+    public function factory_ignores_an_unknown_enum_case_and_empties_a_nullable_one()
+    {
+        $mailable = (new MailableFactory)->make(EnumMail::class, [
+            'tone' => 'Rude',
+            'channel' => 'Pigeon',
+            'copy' => '',
+        ]);
+
+        $this->assertSame(Tone::Formal, $mailable->tone);
+        $this->assertSame(Channel::Post, $mailable->channel);
+        $this->assertNull($mailable->copy);
+
+        $this->assertNull((new MailableFactory)->make(EnumMail::class, ['copy' => null])->copy);
+        $this->assertSame(Channel::Email, (new MailableFactory)->make(EnumMail::class)->copy);
+    }
+
+    #[Test]
+    public function details_offer_an_enums_cases_as_a_select()
+    {
+        $constructor = collect(Mailables::describe(EnumMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertSame('select', $constructor['tone']['input']);
+        $this->assertTrue($constructor['tone']['editable']);
+        $this->assertSame('Formal', $constructor['tone']['value']);
+        $this->assertSame([
+            ['label' => 'Formal (formal)', 'value' => 'Formal'],
+            ['label' => 'Casual (casual)', 'value' => 'Casual'],
+        ], $constructor['tone']['options']);
+        $this->assertSame([
+            ['label' => 'Email', 'value' => 'Email'],
+            ['label' => 'Post', 'value' => 'Post'],
+        ], $constructor['channel']['options']);
+        $this->assertFalse($constructor['tone']['nullable']);
+
+        $this->assertSame('Post', $constructor['channel']['value']);
+        $this->assertNull($constructor['reply']['value']);
+        $this->assertTrue($constructor['reply']['nullable']);
+
+        $scalar = collect(Mailables::describe(ScalarMail::class)['details']['constructor'])->keyBy('name');
+
+        $this->assertNull($scalar['name']['options']);
     }
 
     #[Test]
@@ -295,6 +356,26 @@ PHP);
     }
 
     #[Test]
+    public function preview_and_meta_use_a_picked_enum_case()
+    {
+        Mailables::register(EnumMail::class);
+
+        $values = ['tone' => 'Casual', 'channel' => 'Email', 'copy' => ''];
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => EnumMail::class, 'values' => $values]))
+            ->assertOk()
+            ->assertSee('Casual by Email, copy by nothing', false);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.meta', ['mailable' => EnumMail::class, 'values' => $values]))
+            ->assertOk()
+            ->assertJson(['subject' => 'A casual hello', 'error' => null]);
+    }
+
+    #[Test]
     public function meta_returns_envelope_for_injected_values()
     {
         Mailables::register(ScalarMail::class);
@@ -361,6 +442,27 @@ PHP);
 
         Mail::assertSent(ScalarMail::class, function (ScalarMail $mail) {
             return $mail->name === 'Jack' && $mail->hasTo('tester@example.com');
+        });
+    }
+
+    #[Test]
+    public function send_uses_a_picked_enum_case()
+    {
+        Mail::fake();
+        Mailables::register(EnumMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->from(cp_route('utilities.mailables'))
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => EnumMail::class,
+                'values' => ['tone' => 'Casual', 'copy' => ''],
+            ])
+            ->assertRedirect(cp_route('utilities.mailables'));
+
+        Mail::assertSent(EnumMail::class, function (EnumMail $mail) {
+            return $mail->tone === Tone::Casual && $mail->copy === null;
         });
     }
 
