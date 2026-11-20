@@ -20,7 +20,6 @@ use Statamic\Facades\Entry;
 use Statamic\Facades\Form;
 use Statamic\Facades\FormSubmission;
 use Statamic\Facades\User;
-use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 
 class MailableFactory
 {
@@ -33,7 +32,7 @@ class MailableFactory
             return $reflection->newInstance();
         }
 
-        $examples = is_subclass_of($class, HasPreviewExamples::class) ? $class::previewExamples() : [];
+        $examples = Mailables::examples($class);
 
         $args = collect($constructor->getParameters())
             ->map(fn (ReflectionParameter $parameter) => $this->resolveParameter($parameter, $overrides, $examples))

@@ -20,8 +20,12 @@ class ExampleMail extends Mailable implements HasPreviewExamples
         public $extras = [],
     ) {}
 
+    public static int $asked = 0;
+
     public static function previewExamples(): array
     {
+        static::$asked++;
+
         return [
             'name' => 'Ada Lovelace',
             'count' => 3,

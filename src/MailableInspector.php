@@ -4,19 +4,16 @@ namespace Statamic\MailablesViewer;
 
 use DateTimeInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use JsonSerializable;
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
-use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 use Symfony\Component\Finder\SplFileInfo;
 
 class MailableInspector
@@ -121,7 +118,7 @@ class MailableInspector
             return [];
         }
 
-        $examples = $mailable instanceof HasPreviewExamples ? $mailable::previewExamples() : [];
+        $examples = Mailables::examples($mailable::class);
 
         return collect($constructor->getParameters())
             ->map(function (ReflectionParameter $parameter) use ($mailable, $examples) {
@@ -392,16 +389,16 @@ class MailableInspector
     }
 
     /**
-     * An object that knows its array or JSON form shows that, any other its class name.
+     * A collection shows its contents like an array does, any other object its class name.
      */
     protected function stringifyObject(object $value): string
     {
-        if (! $value instanceof Arrayable && ! $value instanceof JsonSerializable) {
+        if (! $value instanceof Collection) {
             return $value::class;
         }
 
         try {
-            $json = json_encode($value instanceof Arrayable ? $value->toArray() : $value);
+            $json = json_encode($value->toArray());
         } catch (\Throwable) {
             return $value::class;
         }
