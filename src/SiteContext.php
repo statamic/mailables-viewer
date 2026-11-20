@@ -13,7 +13,12 @@ class SiteContext
         $sites = Site::authorized();
         $selected = Site::selected()->handle();
 
-        return $sites->get(is_string($handle) ? $handle : '') ?? $sites->get($selected) ?? $sites->first() ?? Site::default();
+        $site = $sites->get(is_string($handle) ? $handle : '') ?? $sites->get($selected) ?? $sites->first();
+
+        // A user without access to any site of a multisite install is shown none of them.
+        abort_if(! $site && Site::hasMultiple(), 403);
+
+        return $site ?? Site::default();
     }
 
     public static function run(SiteInstance $site, Closure $callback): mixed

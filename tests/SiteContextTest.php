@@ -48,6 +48,21 @@ class SiteContextTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_a_user_without_access_to_any_site()
+    {
+        $this->setSites();
+        $this->setTestRoles(['test' => ['access cp', 'access mailables utility']]);
+        $this->actingAs(tap(User::make()->email('nowhere@example.com')->assignRole('test'))->save());
+
+        try {
+            SiteContext::resolve('en');
+            $this->fail('Expected a 403.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            $this->assertSame(403, $e->getStatusCode());
+        }
+    }
+
+    #[Test]
     public function it_runs_a_callback_in_the_sites_locale_and_restores_it()
     {
         $this->setSites();

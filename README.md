@@ -61,7 +61,7 @@ Add `?site=` to link to a site. It combines with `?mailable=`:
 cp_route('utilities.mailables', ['site' => 'french', 'mailable' => \App\Mail\OrderShipped::class]);
 ```
 
-A site you cannot access, or one that does not exist, falls back to the selected site. Single-site installs are unaffected.
+A site you cannot access, or one that does not exist, falls back to the selected site. Without access to any site the viewer answers 403. Single-site installs are unaffected.
 
 ### Constructor data
 
