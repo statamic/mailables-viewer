@@ -99,7 +99,7 @@ class MailableFactory
         }
 
         if (is_a($type, DateTimeInterface::class, true)) {
-            return now();
+            return $this->dateTimeAs($type, now());
         }
 
         if (is_a($type, EntryContract::class, true)) {
@@ -235,7 +235,7 @@ class MailableFactory
         $type = $this->namedTypeName($parameter->getType());
 
         if ($type && is_a($type, DateTimeInterface::class, true)) {
-            return Carbon::parse($value);
+            return $this->dateTimeAs($type, Carbon::parse($value));
         }
 
         return match ($type) {
@@ -244,5 +244,10 @@ class MailableFactory
             'bool', 'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             default => $value === null ? '' : (string) $value,
         };
+    }
+
+    protected function dateTimeAs(string $type, DateTimeInterface $date): DateTimeInterface
+    {
+        return $date instanceof $type ? $date : $type::createFromInterface($date);
     }
 }
