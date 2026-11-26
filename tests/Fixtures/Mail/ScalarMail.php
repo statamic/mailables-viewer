@@ -2,6 +2,7 @@
 
 namespace Tests\Fixtures\Mail;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -17,6 +18,7 @@ class ScalarMail extends Mailable
         public bool $active,
         public array $items,
         public DateTimeInterface $when,
+        public DateTimeImmutable $startsAt,
         public string $optional = 'default-value',
         public ?string $nullable = null,
     ) {}

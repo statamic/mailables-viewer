@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
@@ -81,6 +82,7 @@ class MailablesTest extends TestCase
         $this->assertTrue($mailable->active);
         $this->assertSame([], $mailable->items);
         $this->assertInstanceOf(DateTimeInterface::class, $mailable->when);
+        $this->assertInstanceOf(DateTimeImmutable::class, $mailable->startsAt);
         $this->assertSame('default-value', $mailable->optional);
         $this->assertNull($mailable->nullable);
     }
@@ -93,6 +95,7 @@ class MailablesTest extends TestCase
             'count' => '7',
             'active' => 'false',
             'when' => '2026-08-19T20:48',
+            'startsAt' => '2026-09-01T09:30',
             'items' => ['ignored'],
         ]);
 
@@ -100,6 +103,7 @@ class MailablesTest extends TestCase
         $this->assertSame(7, $mailable->count);
         $this->assertFalse($mailable->active);
         $this->assertSame('2026-08-19 20:48:00', $mailable->when->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-09-01 09:30:00', $mailable->startsAt->format('Y-m-d H:i:s'));
         $this->assertSame([], $mailable->items);
     }
 
