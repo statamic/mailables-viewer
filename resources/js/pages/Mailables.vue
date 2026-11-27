@@ -48,7 +48,7 @@ const injectedValues = computed(() => {
     return Object.fromEntries(
         injected.value
             .filter((param) => param.editable)
-            .map((param) => [param.name, param.value]),
+            .map((param) => [param.name, param.input === 'select' ? (param.value ?? '') : param.value]),
     );
 });
 
@@ -322,7 +322,7 @@ watch(injectedValues, () => {
                                 v-for="mailable in filtered"
                                 :key="mailable.class"
                                 type="button"
-                                class="flex flex-col items-start gap-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-start transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                                class="flex flex-col items-start gap-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-start cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                                 :class="{ 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600': selected?.class === mailable.class }"
                                 @click="select(mailable)"
                             >
@@ -413,6 +413,18 @@ watch(injectedValues, () => {
                                                     v-model="param.value"
                                                     size="sm"
                                                 />
+                                                <Select
+                                                    v-else-if="param.editable && param.input === 'select'"
+                                                    v-model="param.value"
+                                                    :options="param.options"
+                                                    :clearable="param.nullable"
+                                                    size="sm"
+                                                >
+                                                    <template #option="option">
+                                                        {{ option.label }}
+                                                        <code v-if="option.backing_value !== null" class="px-1 rounded-sm text-[0.8rem]">{{ option.backing_value }}</code>
+                                                    </template>
+                                                </Select>
                                                 <Input
                                                     v-else-if="param.editable"
                                                     v-model="param.value"

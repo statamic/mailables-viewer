@@ -31,7 +31,7 @@ class ServiceProvider extends AddonServiceProvider
 
                     return [
                         'mailables' => $mailables,
-                        'initialMailable' => $initialMailable['class'] ?? null,
+                        'initialMailable' => $initialMailable?->class,
                         'previewUrl' => cp_route('utilities.mailables.preview'),
                         'metaUrl' => cp_route('utilities.mailables.meta'),
                         'sendUrl' => cp_route('utilities.mailables.send'),

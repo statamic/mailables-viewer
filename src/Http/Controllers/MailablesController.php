@@ -51,10 +51,10 @@ class MailablesController
         );
 
         return response()->json([
-            'subject' => $described['subject'],
-            'from' => $described['from'],
-            'attachments' => $described['attachments'],
-            'error' => $described['error'],
+            'subject' => $described->subject,
+            'from' => $described->from,
+            'attachments' => $described->attachments,
+            'error' => $described->error,
         ]);
     }
 
