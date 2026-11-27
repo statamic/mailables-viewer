@@ -18,6 +18,7 @@ readonly class ConstructorParameter implements Arrayable, JsonSerializable
         public ?string $input,
         public ?array $options,
         public bool $nullable,
+        public bool $example,
     ) {}
 
     public function editable(): bool
@@ -38,6 +39,7 @@ readonly class ConstructorParameter implements Arrayable, JsonSerializable
                 ? null
                 : array_map(fn (EnumOption $option) => $option->toArray(), $this->options),
             'nullable' => $this->nullable,
+            'example' => $this->example,
         ];
     }
 

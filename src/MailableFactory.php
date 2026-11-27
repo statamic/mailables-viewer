@@ -32,14 +32,16 @@ class MailableFactory
             return $reflection->newInstance();
         }
 
+        $examples = Mailables::examples($class);
+
         $args = collect($constructor->getParameters())
-            ->map(fn (ReflectionParameter $parameter) => $this->resolveParameter($parameter, $overrides))
+            ->map(fn (ReflectionParameter $parameter) => $this->resolveParameter($parameter, $overrides, $examples))
             ->all();
 
         return $reflection->newInstanceArgs($args);
     }
 
-    protected function resolveParameter(ReflectionParameter $parameter, array $overrides = []): mixed
+    protected function resolveParameter(ReflectionParameter $parameter, array $overrides = [], array $examples = []): mixed
     {
         if (array_key_exists($parameter->getName(), $overrides) && $this->isOverridable($parameter)) {
             $override = $overrides[$parameter->getName()];
@@ -56,6 +58,10 @@ class MailableFactory
             if (($override === '' || $override === null) && $parameter->allowsNull()) {
                 return null;
             }
+        }
+
+        if (array_key_exists($parameter->getName(), $examples)) {
+            return $examples[$parameter->getName()];
         }
 
         if ($parameter->isDefaultValueAvailable()) {

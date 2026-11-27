@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use Statamic\MailablesViewer\Contracts\HasPreviewExamples;
 use Statamic\MailablesViewer\Data\MailableDescription;
 
 class Mailables
@@ -66,6 +67,20 @@ class Mailables
         }
 
         return (new MailableFactory)->make($class, $overrides);
+    }
+
+    /**
+     * The example values a mailable names for its constructor parameters, asked once per request.
+     *
+     * @return array<string, mixed>
+     */
+    public static function examples(string $class): array
+    {
+        if (! is_subclass_of($class, HasPreviewExamples::class)) {
+            return [];
+        }
+
+        return once(fn () => $class::previewExamples());
     }
 
     public static function describe(string $class, array $overrides = []): MailableDescription
