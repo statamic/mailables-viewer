@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use Statamic\MailablesViewer\Data\MailableDescription;
 
 class Mailables
 {

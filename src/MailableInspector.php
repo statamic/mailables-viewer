@@ -14,12 +14,12 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
-use Statamic\MailablesViewer\Inspection\ConstructorParameter;
-use Statamic\MailablesViewer\Inspection\EnumOption;
-use Statamic\MailablesViewer\Inspection\EventListener;
-use Statamic\MailablesViewer\Inspection\Inspection;
-use Statamic\MailablesViewer\Inspection\Reference;
-use Statamic\MailablesViewer\Inspection\Template;
+use Statamic\MailablesViewer\Data\ConstructorParameter;
+use Statamic\MailablesViewer\Data\EnumOption;
+use Statamic\MailablesViewer\Data\EventListener;
+use Statamic\MailablesViewer\Data\Inspection;
+use Statamic\MailablesViewer\Data\Reference;
+use Statamic\MailablesViewer\Data\Template;
 use Symfony\Component\Finder\SplFileInfo;
 
 class MailableInspector

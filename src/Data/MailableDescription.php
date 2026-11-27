@@ -1,10 +1,9 @@
 <?php
 
-namespace Statamic\MailablesViewer;
+namespace Statamic\MailablesViewer\Data;
 
 use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
-use Statamic\MailablesViewer\Inspection\Inspection;
 
 readonly class MailableDescription implements Arrayable, JsonSerializable
 {

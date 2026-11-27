@@ -1,6 +1,6 @@
 <?php
 
-namespace Statamic\MailablesViewer\Inspection;
+namespace Statamic\MailablesViewer\Data;
 
 use Illuminate\Contracts\Support\Arrayable;
 use JsonSerializable;
