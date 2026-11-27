@@ -19,7 +19,7 @@ use Symfony\Component\Finder\SplFileInfo;
 class MailableInspector
 {
     /**
-     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
+     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
      */
     public function inspect(string $class, ?Mailable $mailable = null): array
     {
@@ -108,7 +108,7 @@ class MailableInspector
     }
 
     /**
-     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool}>
+     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>
      */
     protected function constructor(Mailable $mailable): array
     {
@@ -132,9 +132,27 @@ class MailableInspector
                     'value' => $input ? $this->editValue($value, $input) : $this->stringify($value),
                     'input' => $input,
                     'editable' => $input !== null,
+                    'options' => $input === 'select' ? $this->enumOptions($type) : null,
+                    'nullable' => $parameter->allowsNull(),
                 ];
             })
             ->all();
+    }
+
+    /**
+     * An enum's cases as the options of a select: valued and labelled by case name,
+     * with a backed case's value alongside it.
+     *
+     * @param  class-string<\UnitEnum>  $enum
+     * @return array<int, array{label: string, value: string, backing_value: string|int|null}>
+     */
+    protected function enumOptions(string $enum): array
+    {
+        return array_map(fn (\UnitEnum $case) => [
+            'label' => $case->name,
+            'value' => $case->name,
+            'backing_value' => $case instanceof \BackedEnum ? $case->value : null,
+        ], $enum::cases());
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
@@ -143,6 +161,10 @@ class MailableInspector
 
         if ($type === null && $parameter->getType() !== null) {
             return null;
+        }
+
+        if ($type && enum_exists($type)) {
+            return 'select';
         }
 
         if ($type && is_a($type, DateTimeInterface::class, true)) {
@@ -191,6 +213,10 @@ class MailableInspector
 
     protected function editValue(mixed $value, string $input): mixed
     {
+        if ($input === 'select') {
+            return $value instanceof \UnitEnum ? $value->name : null;
+        }
+
         if ($value === null) {
             return $input === 'checkbox' ? false : '';
         }
