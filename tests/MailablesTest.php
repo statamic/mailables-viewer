@@ -146,12 +146,12 @@ class MailablesTest extends TestCase
         $this->assertTrue($constructor['tone']['editable']);
         $this->assertSame('Formal', $constructor['tone']['value']);
         $this->assertSame([
-            ['label' => 'Formal (formal)', 'value' => 'Formal'],
-            ['label' => 'Casual (casual)', 'value' => 'Casual'],
+            ['label' => 'Formal', 'value' => 'Formal', 'backing_value' => 'formal'],
+            ['label' => 'Casual', 'value' => 'Casual', 'backing_value' => 'casual'],
         ], $constructor['tone']['options']);
         $this->assertSame([
-            ['label' => 'Email', 'value' => 'Email'],
-            ['label' => 'Post', 'value' => 'Post'],
+            ['label' => 'Email', 'value' => 'Email', 'backing_value' => null],
+            ['label' => 'Post', 'value' => 'Post', 'backing_value' => null],
         ], $constructor['channel']['options']);
         $this->assertFalse($constructor['tone']['nullable']);
 

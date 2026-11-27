@@ -19,7 +19,7 @@ use Symfony\Component\Finder\SplFileInfo;
 class MailableInspector
 {
     /**
-     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string}>|null, nullable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
+     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
      */
     public function inspect(string $class, ?Mailable $mailable = null): array
     {
@@ -108,7 +108,7 @@ class MailableInspector
     }
 
     /**
-     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string}>|null, nullable: bool}>
+     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>
      */
     protected function constructor(Mailable $mailable): array
     {
@@ -140,17 +140,18 @@ class MailableInspector
     }
 
     /**
-     * An enum's cases as the options of a select: valued by case name, labelled by it too,
-     * a backed case with its value after it ("Formal (formal)").
+     * An enum's cases as the options of a select: valued and labelled by case name,
+     * with a backed case's value alongside it.
      *
      * @param  class-string<\UnitEnum>  $enum
-     * @return array<int, array{label: string, value: string}>
+     * @return array<int, array{label: string, value: string, backing_value: string|int|null}>
      */
     protected function enumOptions(string $enum): array
     {
         return array_map(fn (\UnitEnum $case) => [
-            'label' => $case instanceof \BackedEnum ? "{$case->name} ({$case->value})" : $case->name,
+            'label' => $case->name,
             'value' => $case->name,
+            'backing_value' => $case instanceof \BackedEnum ? $case->value : null,
         ], $enum::cases());
     }
 

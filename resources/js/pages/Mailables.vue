@@ -380,7 +380,12 @@ watch(injectedValues, () => {
                                                     :options="param.options"
                                                     :clearable="param.nullable"
                                                     size="sm"
-                                                />
+                                                >
+                                                    <template #option="option">
+                                                        {{ option.label }}
+                                                        <code v-if="option.backing_value !== null" class="px-1 rounded-sm text-[0.8rem]">{{ option.backing_value }}</code>
+                                                    </template>
+                                                </Select>
                                                 <Input
                                                     v-else-if="param.editable"
                                                     v-model="param.value"
