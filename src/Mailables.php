@@ -44,7 +44,7 @@ class Mailables
     }
 
     /**
-     * @return Collection<int, array{class: string, name: string, path: string|null, subject: string|null, from: string|null, attachments: int, queued: bool, error: string|null}>
+     * @return Collection<int, MailableDescription>
      */
     public static function all(): Collection
     {
@@ -67,38 +67,39 @@ class Mailables
         return (new MailableFactory)->make($class, $overrides);
     }
 
-    /**
-     * @return array{class: string, name: string, path: string|null, subject: string|null, from: string|null, attachments: int, queued: bool, error: string|null}
-     */
-    public static function describe(string $class, array $overrides = []): array
+    public static function describe(string $class, array $overrides = []): MailableDescription
     {
-        $defaults = [
-            'class' => $class,
-            'name' => Str::headline(class_basename($class)),
-            'path' => static::relativePath($class),
-            'subject' => null,
-            'from' => static::defaultFrom(),
-            'attachments' => 0,
-            'queued' => is_subclass_of($class, ShouldQueue::class),
-            'error' => null,
-            'details' => (new MailableInspector)->inspect($class),
-        ];
+        $inspector = new MailableInspector;
+        $path = static::relativePath($class);
+        $name = Str::headline(class_basename($class));
 
         try {
             $instance = (new MailableFactory)->make($class, $overrides);
+            $envelope = static::envelope($instance);
 
-            return [
-                ...$defaults,
-                ...static::envelope($instance),
-                'queued' => $instance instanceof ShouldQueue,
-                'details' => (new MailableInspector)->inspect($class, $instance),
-            ];
+            return new MailableDescription(
+                class: $class,
+                name: $name,
+                path: $path,
+                subject: $envelope['subject'],
+                from: $envelope['from'],
+                attachments: $envelope['attachments'],
+                queued: $instance instanceof ShouldQueue,
+                error: null,
+                details: $inspector->inspect($class, $instance),
+            );
         } catch (\Throwable $e) {
-            return [
-                ...$defaults,
-                'from' => null,
-                'error' => $e->getMessage(),
-            ];
+            return new MailableDescription(
+                class: $class,
+                name: $name,
+                path: $path,
+                subject: null,
+                from: null,
+                attachments: 0,
+                queued: is_subclass_of($class, ShouldQueue::class),
+                error: $e->getMessage(),
+                details: $inspector->inspect($class),
+            );
         }
     }
 

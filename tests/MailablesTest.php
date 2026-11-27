@@ -125,14 +125,14 @@ class MailablesTest extends TestCase
         Mailables::register([WelcomeMail::class, QueuedMail::class, ScalarMail::class]);
 
         $welcome = Mailables::describe(WelcomeMail::class);
-        $this->assertFalse($welcome['details']->queued);
-        $this->assertSame('HTML', $welcome['details']->template->engine);
+        $this->assertFalse($welcome->details->queued);
+        $this->assertSame('HTML', $welcome->details->template->engine);
 
         $queued = Mailables::describe(QueuedMail::class);
-        $this->assertTrue($queued['details']->queued);
+        $this->assertTrue($queued->details->queued);
 
         $scalar = Mailables::describe(ScalarMail::class);
-        $params = collect($scalar['details']->constructor)->keyBy('name');
+        $params = collect($scalar->details->constructor)->keyBy('name');
         $this->assertSame('preview@example.com', $params['email']->value);
         $this->assertSame('string', $params['email']->type);
         $this->assertTrue($params['email']->editable());
@@ -170,7 +170,7 @@ PHP);
 
         Mailables::register(WelcomeMail::class);
 
-        $details = Mailables::describe(WelcomeMail::class)['details'];
+        $details = Mailables::describe(WelcomeMail::class)->details;
 
         $this->assertSame('App\\Events\\UserRegistered', $details->events[0]->event);
         $this->assertSame('App\\Listeners\\SendWelcomeMail', $details->events[0]->listener);
