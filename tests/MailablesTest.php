@@ -125,25 +125,25 @@ class MailablesTest extends TestCase
         Mailables::register([WelcomeMail::class, QueuedMail::class, ScalarMail::class]);
 
         $welcome = Mailables::describe(WelcomeMail::class);
-        $this->assertFalse($welcome['details']['queued']);
-        $this->assertSame('HTML', $welcome['details']['template']['engine']);
+        $this->assertFalse($welcome['details']->queued);
+        $this->assertSame('HTML', $welcome['details']->template->engine);
 
         $queued = Mailables::describe(QueuedMail::class);
-        $this->assertTrue($queued['details']['queued']);
+        $this->assertTrue($queued['details']->queued);
 
         $scalar = Mailables::describe(ScalarMail::class);
-        $params = collect($scalar['details']['constructor'])->keyBy('name');
-        $this->assertSame('preview@example.com', $params['email']['value']);
-        $this->assertSame('string', $params['email']['type']);
-        $this->assertTrue($params['email']['editable']);
-        $this->assertSame('email', $params['email']['input']);
-        $this->assertSame('Jane Doe', $params['name']['value']);
-        $this->assertSame('default-value', $params['optional']['value']);
-        $this->assertTrue($params['active']['editable']);
-        $this->assertSame('checkbox', $params['active']['input']);
-        $this->assertTrue($params['active']['value']);
-        $this->assertFalse($params['items']['editable']);
-        $this->assertSame('datetime-local', $params['when']['input']);
+        $params = collect($scalar['details']->constructor)->keyBy('name');
+        $this->assertSame('preview@example.com', $params['email']->value);
+        $this->assertSame('string', $params['email']->type);
+        $this->assertTrue($params['email']->editable());
+        $this->assertSame('email', $params['email']->input);
+        $this->assertSame('Jane Doe', $params['name']->value);
+        $this->assertSame('default-value', $params['optional']->value);
+        $this->assertTrue($params['active']->editable());
+        $this->assertSame('checkbox', $params['active']->input);
+        $this->assertTrue($params['active']->value);
+        $this->assertFalse($params['items']->editable());
+        $this->assertSame('datetime-local', $params['when']->input);
     }
 
     #[Test]
@@ -172,11 +172,11 @@ PHP);
 
         $details = Mailables::describe(WelcomeMail::class)['details'];
 
-        $this->assertSame('App\\Events\\UserRegistered', $details['events'][0]['event']);
-        $this->assertSame('App\\Listeners\\SendWelcomeMail', $details['events'][0]['listener']);
+        $this->assertSame('App\\Events\\UserRegistered', $details->events[0]->event);
+        $this->assertSame('App\\Listeners\\SendWelcomeMail', $details->events[0]->listener);
         $this->assertFalse(
-            collect($details['references'])->contains(
-                fn ($reference) => str_contains($reference['file'], 'SendWelcomeMail.php')
+            collect($details->references)->contains(
+                fn ($reference) => str_contains($reference->file, 'SendWelcomeMail.php')
             )
         );
     }
