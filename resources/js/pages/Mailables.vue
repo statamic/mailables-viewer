@@ -7,7 +7,7 @@ import {
     SplitterGroup, SplitterPanel, SplitterResizeHandle,
     ToggleGroup, ToggleItem, ConfirmationModal, ErrorMessage, Field,
     EmptyStateMenu, EmptyStateItem, Avatar, Table, TableRow, TableCell,
-    Switch,
+    Switch, Select,
 } from '@statamic/cms/ui';
 
 const props = defineProps({
@@ -45,7 +45,7 @@ const injectedValues = computed(() => {
     return Object.fromEntries(
         injected.value
             .filter((param) => param.editable)
-            .map((param) => [param.name, param.value]),
+            .map((param) => [param.name, param.input === 'select' ? (param.value ?? '') : param.value]),
     );
 });
 
@@ -374,6 +374,18 @@ watch(injectedValues, () => {
                                                     v-model="param.value"
                                                     size="sm"
                                                 />
+                                                <Select
+                                                    v-else-if="param.editable && param.input === 'select'"
+                                                    v-model="param.value"
+                                                    :options="param.options"
+                                                    :clearable="param.nullable"
+                                                    size="sm"
+                                                >
+                                                    <template #option="option">
+                                                        {{ option.label }}
+                                                        <code v-if="option.backing_value !== null" class="px-1 rounded-sm text-[0.8rem]">{{ option.backing_value }}</code>
+                                                    </template>
+                                                </Select>
                                                 <Input
                                                     v-else-if="param.editable"
                                                     v-model="param.value"

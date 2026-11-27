@@ -15,6 +15,7 @@ use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 use Statamic\MailablesViewer\Inspection\ConstructorParameter;
+use Statamic\MailablesViewer\Inspection\EnumOption;
 use Statamic\MailablesViewer\Inspection\EventListener;
 use Statamic\MailablesViewer\Inspection\Inspection;
 use Statamic\MailablesViewer\Inspection\Reference;
@@ -124,9 +125,27 @@ class MailableInspector
                     type: $type,
                     value: $input ? $this->editValue($value, $input) : $this->stringify($value),
                     input: $input,
+                    options: $input === 'select' ? $this->enumOptions($type) : null,
+                    nullable: $parameter->allowsNull(),
                 );
             })
             ->all();
+    }
+
+    /**
+     * An enum's cases as the options of a select: valued and labelled by case name,
+     * with a backed case's value alongside it.
+     *
+     * @param  class-string<\UnitEnum>  $enum
+     * @return EnumOption[]
+     */
+    protected function enumOptions(string $enum): array
+    {
+        return array_map(fn (\UnitEnum $case) => new EnumOption(
+            label: $case->name,
+            value: $case->name,
+            backingValue: $case instanceof \BackedEnum ? $case->value : null,
+        ), $enum::cases());
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
@@ -135,6 +154,10 @@ class MailableInspector
 
         if ($type === null && $parameter->getType() !== null) {
             return null;
+        }
+
+        if ($type && enum_exists($type)) {
+            return 'select';
         }
 
         if ($type && is_a($type, DateTimeInterface::class, true)) {
@@ -183,6 +206,10 @@ class MailableInspector
 
     protected function editValue(mixed $value, string $input): mixed
     {
+        if ($input === 'select') {
+            return $value instanceof \UnitEnum ? $value->name : null;
+        }
+
         if ($value === null) {
             return $input === 'checkbox' ? false : '';
         }

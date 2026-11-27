@@ -7,12 +7,17 @@ use JsonSerializable;
 
 readonly class ConstructorParameter implements Arrayable, JsonSerializable
 {
+    /**
+     * @param  EnumOption[]|null  $options
+     */
     public function __construct(
         public string $name,
         public string $label,
         public ?string $type,
         public mixed $value,
         public ?string $input,
+        public ?array $options,
+        public bool $nullable,
     ) {}
 
     public function editable(): bool
@@ -29,6 +34,10 @@ readonly class ConstructorParameter implements Arrayable, JsonSerializable
             'value' => $this->value,
             'input' => $this->input,
             'editable' => $this->editable(),
+            'options' => $this->options === null
+                ? null
+                : array_map(fn (EnumOption $option) => $option->toArray(), $this->options),
+            'nullable' => $this->nullable,
         ];
     }
 
