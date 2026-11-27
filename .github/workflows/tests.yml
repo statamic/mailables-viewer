@@ -39,7 +39,28 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96 # v47.0.6
+        with:
+          files: |
+            lang/**
+            src/**
+            tests/**
+            composer.json
+            phpunit.xml
+            .github/workflows/tests.yml
+            **.php
+
+      - name: Determine whether tests should run
+        id: should-run-tests
+        if: steps.changed-files.outputs.any_modified == 'true' || github.event_name == 'schedule'
+        run: |
+          echo "result=true" >> $GITHUB_OUTPUT
+          echo "result=true" >> $env:GITHUB_OUTPUT
+
       - name: Setup PHP
+        if: steps.should-run-tests.outputs.result == 'true'
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
           php-version: ${{ matrix.php }}
@@ -47,6 +68,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
+        if: steps.should-run-tests.outputs.result == 'true'
         shell: bash
         env:
           LARAVEL: ${{ matrix.laravel }}
@@ -56,6 +78,7 @@ jobs:
           composer update --$STABILITY --prefer-dist --no-interaction --no-suggest
 
       - name: Execute tests
+        if: steps.should-run-tests.outputs.result == 'true'
         run: vendor/bin/phpunit
 
       - name: Send Slack notification
