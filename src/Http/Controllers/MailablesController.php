@@ -9,6 +9,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Statamic\MailablesViewer\Mailables;
+use Statamic\MailablesViewer\SiteContext;
+use Statamic\Sites\Site as SiteInstance;
 
 use function Statamic\trans as __;
 
@@ -23,8 +25,12 @@ class MailablesController
         }
 
         try {
-            return response(Mailables::make($class, $this->values($request))->render())
-                ->header('Content-Type', 'text/html; charset=UTF-8');
+            $html = SiteContext::run(
+                $this->site($request),
+                fn () => Mailables::make($class, $this->values($request))->render()
+            );
+
+            return response($html)->header('Content-Type', 'text/html; charset=UTF-8');
         } catch (\Throwable $e) {
             return response($this->errorPage($e), 200)
                 ->header('Content-Type', 'text/html; charset=UTF-8');
@@ -39,7 +45,10 @@ class MailablesController
             abort(404);
         }
 
-        $described = Mailables::describe($class, $this->values($request));
+        $described = SiteContext::run(
+            $this->site($request),
+            fn () => Mailables::describe($class, $this->values($request))
+        );
 
         return response()->json([
             'subject' => $described->subject,
@@ -57,9 +66,17 @@ class MailablesController
             'values' => 'array',
         ]);
 
-        Mail::to($request->email)->sendNow(Mailables::make($request->mailable, $this->values($request)));
+        SiteContext::run(
+            $this->site($request),
+            fn () => Mail::to($request->email)->sendNow(Mailables::make($request->mailable, $this->values($request)))
+        );
 
         return back()->withSuccess(__('Test email sent.'));
+    }
+
+    protected function site(Request $request): SiteInstance
+    {
+        return SiteContext::resolve($request->input('site'));
     }
 
     protected function values(Request $request): array
