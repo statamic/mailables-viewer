@@ -7,7 +7,7 @@ import {
     SplitterGroup, SplitterPanel, SplitterResizeHandle,
     ToggleGroup, ToggleItem, ConfirmationModal, ErrorMessage, Field,
     EmptyStateMenu, EmptyStateItem, Avatar, Table, TableRow, TableCell,
-    Switch, Select,
+    Switch, Select, Icon,
 } from '@statamic/cms/ui';
 
 const props = defineProps({
@@ -30,6 +30,8 @@ const previewWidth = ref('desktop');
 const pane = ref('preview');
 const sendModal = ref(false);
 const copying = ref(false);
+const previewLoading = ref(false);
+let previewLoadingTimeout = null;
 
 const previewWidths = {
     desktop: '100%',
@@ -201,6 +203,11 @@ function select(mailable) {
     pane.value = 'preview';
 }
 
+function previewLoaded() {
+    clearTimeout(previewLoadingTimeout);
+    previewLoading.value = false;
+}
+
 function send() {
     form.mailable = selected.value?.class ?? '';
     form.values = { ...injectedValues.value };
@@ -267,6 +274,14 @@ const refreshEnvelopeDebounced = debounce(() => {
 watch(injectedValues, () => {
     refreshEnvelopeDebounced();
 });
+
+watch(previewSrc, (src) => {
+    previewLoaded();
+
+    if (src) {
+        previewLoadingTimeout = setTimeout(() => previewLoading.value = true, 200);
+    }
+}, { immediate: true });
 </script>
 
 <template>
@@ -476,7 +491,7 @@ watch(injectedValues, () => {
                                 </div>
                                 <div
                                     v-else
-                                    class="h-full mx-auto bg-white dark:bg-gray-850 transition-[width] duration-200"
+                                    class="relative h-full mx-auto bg-white dark:bg-gray-850 transition-[width] duration-200"
                                     :class="{ 'shadow-sm': previewWidth !== 'desktop' }"
                                     :style="{ width: previewWidths[previewWidth], maxWidth: '100%' }"
                                 >
@@ -486,7 +501,14 @@ watch(injectedValues, () => {
                                         sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                                         class="w-full h-full border-0"
                                         title="Mailable preview"
+                                        @load="previewLoaded"
                                     />
+                                    <div
+                                        v-if="previewLoading"
+                                        class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-gray-850/60"
+                                    >
+                                        <Icon name="loading" class="size-6 text-gray-500" :aria-label="__('Loading')" />
+                                    </div>
                                 </div>
                             </div>
                         </template>
