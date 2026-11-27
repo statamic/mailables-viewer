@@ -97,14 +97,21 @@ class MailablesController
     <meta charset="utf-8">
     <title>Preview Error</title>
     <style>
-        body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 2rem; color: #3d4452; background: #f7f9fc; }
-        h1 { font-size: 1.125rem; margin: 0 0 0.5rem; }
-        p { margin: 0; line-height: 1.5; }
+        body { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.5; margin: 0; padding: 1rem; }
+        .alert { display: flex; align-items: flex-start; gap: 0.75rem; padding: 1.25rem 1rem; border: 1px solid #fecaca; border-radius: 0.75rem; background: #fef2f2; color: #991b1b; }
+        svg { width: 1.25rem; height: 1.25rem; flex-shrink: 0; opacity: 0.7; }
+        h1 { font-size: inherit; margin: -0.125rem 0 0.25rem; }
+        p { margin: 0; overflow-wrap: anywhere; }
     </style>
 </head>
 <body>
-    <h1>Unable to preview this mailable</h1>
-    <p>{$message}</p>
+    <div class="alert" role="alert">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14" aria-hidden="true"><g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4.092v3.44M7 9.288v.62M.96 10.269a3.13 3.13 0 0 0 2.753 2.76c1.07.119 2.167.221 3.287.221s2.218-.102 3.287-.222a3.13 3.13 0 0 0 2.753-2.76c.114-1.063.21-2.155.21-3.268s-.096-2.205-.21-3.269a3.13 3.13 0 0 0-2.753-2.76C9.217.853 8.12.75 7 .75S4.782.852 3.713.972A3.13 3.13 0 0 0 .96 3.732C.846 4.794.75 5.886.75 7s.096 2.205.21 3.269"/></g></svg>
+        <div>
+            <h1>Unable to preview this mailable</h1>
+            <p>{$message}</p>
+        </div>
+    </div>
 </body>
 </html>
 HTML;

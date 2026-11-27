@@ -3,11 +3,11 @@ import { computed, ref, watch } from 'vue';
 import { debounce } from '@statamic/cms';
 import { Head, router, useForm } from '@statamic/cms/inertia';
 import {
-    Header, Panel, Card, Input, Button, Badge, Heading, Text,
+    Alert, Header, Panel, Card, Input, Button, Badge, Heading, Text,
     SplitterGroup, SplitterPanel, SplitterResizeHandle,
     ToggleGroup, ToggleItem, ConfirmationModal, ErrorMessage, Field,
     EmptyStateMenu, EmptyStateItem, Avatar, Table, TableRow, TableCell,
-    Switch, Select,
+    Switch, Select, Icon,
 } from '@statamic/cms/ui';
 
 const props = defineProps({
@@ -30,6 +30,8 @@ const previewWidth = ref('desktop');
 const pane = ref('preview');
 const sendModal = ref(false);
 const copying = ref(false);
+const previewLoading = ref(false);
+let previewLoadingTimeout = null;
 
 const previewWidths = {
     desktop: '100%',
@@ -205,6 +207,11 @@ function select(mailable) {
     pane.value = 'preview';
 }
 
+function previewLoaded() {
+    clearTimeout(previewLoadingTimeout);
+    previewLoading.value = false;
+}
+
 function send() {
     form.mailable = selected.value?.class ?? '';
     form.values = { ...injectedValues.value };
@@ -271,6 +278,14 @@ const refreshEnvelopeDebounced = debounce(() => {
 watch(injectedValues, () => {
     refreshEnvelopeDebounced();
 });
+
+watch(previewSrc, (src) => {
+    previewLoaded();
+
+    if (src) {
+        previewLoadingTimeout = setTimeout(() => previewLoading.value = true, 200);
+    }
+}, { immediate: true });
 </script>
 
 <template>
@@ -476,16 +491,17 @@ watch(injectedValues, () => {
                                 class="flex-1 min-h-0 overflow-auto"
                                 :class="previewWidth === 'desktop' ? 'bg-white dark:bg-gray-850' : 'bg-gray-100 dark:bg-gray-900 p-4'"
                             >
-                                <div
-                                    v-if="selected.error"
-                                    class="max-w-lg mx-auto mt-8 text-center"
-                                >
-                                    <Heading size="lg" :text="__('Unable to preview this mailable')" />
-                                    <Text variant="subtle" :text="selected.error" class="mt-2 block" />
+                                <div v-if="selected.error" class="p-4">
+                                    <Alert
+                                        variant="error"
+                                        icon="alert-warning-exclamation-mark"
+                                        :heading="__('Unable to preview this mailable')"
+                                        :text="selected.error"
+                                    />
                                 </div>
                                 <div
                                     v-else
-                                    class="h-full mx-auto bg-white dark:bg-gray-850 transition-[width] duration-200"
+                                    class="relative h-full mx-auto bg-white dark:bg-gray-850 transition-[width] duration-200"
                                     :class="{ 'shadow-sm': previewWidth !== 'desktop' }"
                                     :style="{ width: previewWidths[previewWidth], maxWidth: '100%' }"
                                 >
@@ -495,7 +511,14 @@ watch(injectedValues, () => {
                                         sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                                         class="w-full h-full border-0"
                                         title="Mailable preview"
+                                        @load="previewLoaded"
                                     />
+                                    <div
+                                        v-if="previewLoading"
+                                        class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-gray-850/60"
+                                    >
+                                        <Icon name="loading" class="size-6 text-gray-500" :aria-label="__('Loading')" />
+                                    </div>
                                 </div>
                             </div>
                         </template>
