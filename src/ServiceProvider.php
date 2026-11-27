@@ -25,7 +25,8 @@ class ServiceProvider extends AddonServiceProvider
         Utility::extend(function ($utilities) {
             $utilities->register('mailables')
                 ->inertia('mailables-viewer::Mailables', function () {
-                    $mailables = Mailables::all()->values();
+                    $site = SiteContext::resolve(request()->query('site'));
+                    $mailables = SiteContext::run($site, fn () => Mailables::all()->values());
                     $initialMailable = $mailables->firstWhere('class', request()->query('mailable')) ?? $mailables->first();
 
                     return [
@@ -35,6 +36,8 @@ class ServiceProvider extends AddonServiceProvider
                         'metaUrl' => cp_route('utilities.mailables.meta'),
                         'sendUrl' => cp_route('utilities.mailables.send'),
                         'defaultEmail' => User::current()?->email(),
+                        'site' => $site->handle(),
+                        'sites' => SiteContext::options(),
                     ];
                 })
                 ->title(__('mailables-viewer::messages.title'))

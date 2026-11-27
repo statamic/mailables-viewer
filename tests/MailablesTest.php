@@ -18,6 +18,8 @@ use Tests\Fixtures\Enums\Tone;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
 use Tests\Fixtures\Mail\EnumMail;
+use Tests\Fixtures\Mail\FixedLocaleMail;
+use Tests\Fixtures\Mail\LocalizedMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
 use Tests\Fixtures\Mail\QueuedMail;
@@ -333,6 +335,90 @@ PHP);
     }
 
     #[Test]
+    public function index_describes_mailables_in_the_selected_site_by_default()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'en')
+                ->has('sites', 2)
+                ->where('sites.1.handle', 'fr_ch')
+                ->where('sites.1.name', 'French')
+                ->where('sites.1.url', cp_route('utilities.mailables', ['site' => 'fr_ch']))
+                ->where('mailables.0.subject', 'Subject in en')
+            );
+    }
+
+    #[Test]
+    public function index_describes_mailables_in_the_site_named_in_the_query_string()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['site' => 'fr_ch']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'fr_ch')
+                ->where('mailables.0.subject', 'Subject in fr')
+            );
+    }
+
+    #[Test]
+    public function index_ignores_a_site_the_user_may_not_view()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+        $this->setTestRoles(['test' => ['access cp', 'access mailables utility', 'access en site']]);
+        $user = tap(User::make()->email('limited@example.com')->assignRole('test'))->save();
+
+        $this
+            ->actingAs($user)
+            ->get(cp_route('utilities.mailables', ['site' => 'fr_ch']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('site', 'en')
+                ->has('sites', 1)
+                ->where('mailables.0.subject', 'Subject in en')
+            );
+    }
+
+    #[Test]
+    public function index_has_one_site_and_the_cp_locale_on_a_single_site_install()
+    {
+        Mailables::register(LocalizedMail::class);
+        $expected = 'Subject in '.app()->getLocale();
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('sites', 1)
+                ->where('mailables.0.subject', $expected)
+            );
+    }
+
+    #[Test]
+    public function index_ignores_a_site_that_is_not_a_handle()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables', ['site' => ['fr_ch']]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('site', 'en'));
+    }
+
+    #[Test]
     public function preview_returns_rendered_html()
     {
         Mailables::register(WelcomeMail::class);
@@ -498,6 +584,143 @@ PHP);
     }
 
     #[Test]
+    public function preview_renders_in_the_requested_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertSee('Site fr_ch in fr', false);
+    }
+
+    #[Test]
+    public function preview_falls_back_to_the_selected_site_for_an_unknown_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'nope']))
+            ->assertOk()
+            ->assertSee('Site en in en', false);
+    }
+
+    #[Test]
+    public function meta_returns_the_envelope_of_the_requested_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->getJson(cp_route('utilities.mailables.meta', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertJsonPath('subject', 'Subject in fr');
+    }
+
+    #[Test]
+    public function send_renders_in_the_requested_site()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->from(cp_route('utilities.mailables'))
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+                'site' => 'fr_ch',
+            ])
+            ->assertRedirect(cp_route('utilities.mailables'));
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in fr', $sent->getSubject());
+        $this->assertStringContainsString('Site fr_ch in fr', $sent->getHtmlBody());
+    }
+
+    #[Test]
+    public function send_and_preview_keep_a_locale_the_mailable_sets_itself()
+    {
+        $this->setSites();
+        $this->app['view']->addLocation(__DIR__.'/Fixtures/views');
+        Mailables::register(FixedLocaleMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => FixedLocaleMail::class, 'site' => 'fr_ch']))
+            ->assertSee('Rendered in de', false);
+
+        $this
+            ->actingAs($this->superUser())
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => FixedLocaleMail::class,
+                'site' => 'fr_ch',
+            ]);
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertStringContainsString('Rendered in de', $sent->getHtmlBody());
+    }
+
+    #[Test]
+    public function send_leaves_the_locale_alone_on_a_single_site_install()
+    {
+        Mailables::register(LocalizedMail::class);
+        app()->setLocale('de');
+
+        $this
+            ->actingAs($this->superUser())
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+            ]);
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in de', $sent->getSubject());
+    }
+
+    #[Test]
+    public function preview_meta_and_send_ignore_a_site_the_user_may_not_view()
+    {
+        $this->setSites();
+        Mailables::register(LocalizedMail::class);
+        $this->setTestRoles(['test' => ['access cp', 'access mailables utility', 'access en site']]);
+        $user = tap(User::make()->email('limited@example.com')->assignRole('test'))->save();
+
+        $this
+            ->actingAs($user)
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertSee('Site en in en', false);
+
+        $this
+            ->actingAs($user)
+            ->getJson(cp_route('utilities.mailables.meta', ['mailable' => LocalizedMail::class, 'site' => 'fr_ch']))
+            ->assertOk()
+            ->assertJson(['subject' => 'Subject in en']);
+
+        $this
+            ->actingAs($user)
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => LocalizedMail::class,
+                'site' => 'fr_ch',
+            ]);
+
+        $sent = app('mailer')->getSymfonyTransport()->messages()->last()->getOriginalMessage();
+
+        $this->assertSame('Subject in en', $sent->getSubject());
+    }
+
+    #[Test]
     public function routes_are_forbidden_without_permission()
     {
         $this->setTestRoles(['test' => ['access cp']]);
@@ -544,10 +767,5 @@ PHP);
             ->actingAs($user)
             ->get(cp_route('utilities.mailables'))
             ->assertOk();
-    }
-
-    private function superUser()
-    {
-        return tap(User::make()->email('jane@example.com')->makeSuper())->save();
     }
 }

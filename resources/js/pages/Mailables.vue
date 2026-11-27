@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { debounce } from '@statamic/cms';
-import { Head, useForm } from '@statamic/cms/inertia';
+import { Head, router, useForm } from '@statamic/cms/inertia';
 import {
     Header, Panel, Card, Input, Button, Badge, Heading, Text,
     SplitterGroup, SplitterPanel, SplitterResizeHandle,
@@ -17,6 +17,8 @@ const props = defineProps({
     metaUrl: { type: String, required: true },
     sendUrl: { type: String, required: true },
     defaultEmail: { type: String, default: '' },
+    site: { type: String, default: null },
+    sites: { type: Array, default: () => [] },
 });
 
 const search = ref('');
@@ -39,6 +41,7 @@ const form = useForm({
     email: props.defaultEmail,
     mailable: selected.value?.class ?? '',
     values: {},
+    site: props.site,
 });
 
 const injectedValues = computed(() => {
@@ -73,6 +76,7 @@ const previewSrc = computed(() => {
     const url = new URL(props.previewUrl, window.location.origin);
     url.searchParams.set('mailable', selected.value.class);
     url.searchParams.set('_', String(previewKey.value));
+    appendSite(url);
     appendValues(url);
 
     return url.toString();
@@ -141,6 +145,28 @@ function cloneEnvelope(mailable) {
         from: mailable?.from ?? null,
         attachments: mailable?.attachments ?? 0,
     };
+}
+
+function appendSite(url) {
+    if (props.site) {
+        url.searchParams.set('site', props.site);
+    }
+}
+
+function siteSelected(handle) {
+    const site = props.sites.find((site) => site.handle === handle);
+
+    if (! site) {
+        return;
+    }
+
+    const url = new URL(site.url, window.location.origin);
+
+    if (selected.value) {
+        url.searchParams.set('mailable', selected.value.class);
+    }
+
+    router.get(url.toString());
 }
 
 function appendValues(url) {
@@ -212,6 +238,7 @@ async function refreshEnvelope() {
 
     const url = new URL(props.metaUrl, window.location.origin);
     url.searchParams.set('mailable', selected.value.class);
+    appendSite(url);
     appendValues(url);
 
     try {
@@ -246,7 +273,19 @@ watch(injectedValues, () => {
     <div class="max-w-page mx-auto flex flex-col min-h-[calc(100vh-10rem)]">
         <Head :title="[__('mailables-viewer::messages.title'), __('Utilities')]" />
 
-        <Header :title="__('mailables-viewer::messages.title')" icon="mail-inbox-content" />
+        <Header :title="__('mailables-viewer::messages.title')" icon="mail-inbox-content">
+            <Select
+                v-if="sites.length > 1"
+                class="w-36"
+                :options="sites"
+                option-label="name"
+                option-value="handle"
+                align="end"
+                :adaptive-width="true"
+                :model-value="site"
+                @update:model-value="siteSelected"
+            />
+        </Header>
 
         <EmptyStateMenu
             v-if="!mailables.length"
