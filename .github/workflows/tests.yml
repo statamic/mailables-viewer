@@ -6,6 +6,14 @@ on: # zizmor: ignore[concurrency-limits]
       - main
       - '*.x'
   pull_request:
+    paths:
+      - 'lang/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'composer.json'
+      - 'phpunit.xml'
+      - '.github/workflows/tests.yml'
+      - '**.php'
   schedule:
     - cron: '0 0 * * *'
 
