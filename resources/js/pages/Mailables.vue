@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { debounce } from '@statamic/cms';
 import { Head, router, useForm } from '@statamic/cms/inertia';
 import {
-    Header, Panel, Card, Input, Button, Badge, Heading, Text,
+    Alert, Header, Panel, Card, Input, Button, Badge, Heading, Text,
     SplitterGroup, SplitterPanel, SplitterResizeHandle,
     ToggleGroup, ToggleItem, ConfirmationModal, ErrorMessage, Field,
     EmptyStateMenu, EmptyStateItem, Avatar, Table, TableRow, TableCell,
@@ -466,12 +466,13 @@ watch(injectedValues, () => {
                                 class="flex-1 min-h-0 overflow-auto"
                                 :class="previewWidth === 'desktop' ? 'bg-white dark:bg-gray-850' : 'bg-gray-100 dark:bg-gray-900 p-4'"
                             >
-                                <div
-                                    v-if="selected.error"
-                                    class="max-w-lg mx-auto mt-8 text-center"
-                                >
-                                    <Heading size="lg" :text="__('Unable to preview this mailable')" />
-                                    <Text variant="subtle" :text="selected.error" class="mt-2 block" />
+                                <div v-if="selected.error" class="p-4">
+                                    <Alert
+                                        variant="error"
+                                        icon="alert-warning-exclamation-mark"
+                                        :heading="__('Unable to preview this mailable')"
+                                        :text="selected.error"
+                                    />
                                 </div>
                                 <div
                                     v-else
