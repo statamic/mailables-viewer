@@ -283,7 +283,7 @@ watch(injectedValues, () => {
                                 v-for="mailable in filtered"
                                 :key="mailable.class"
                                 type="button"
-                                class="flex flex-col items-start gap-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-start transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
+                                class="flex flex-col items-start gap-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-start cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60"
                                 :class="{ 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600': selected?.class === mailable.class }"
                                 @click="select(mailable)"
                             >
