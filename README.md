@@ -57,11 +57,12 @@ The viewer instantiates each mailable with sample values so you can preview it w
 | Type | What happens |
 | --- | --- |
 | `string`, `int`, `float`, `bool`, datetimes | Fake sample values you can edit in Details |
+| Enums | The first case, with the others to pick from in Details (a backed case shows its value alongside its name) |
 | Statamic `User`, `Entry`, `Form`, `Submission` | First available record |
 | Eloquent models | Factory `make()`, then `query()->first()`, then `::make()` |
 | Anything else | Resolved from the container |
 
-Objects and arrays stay read-only: an array shows as JSON, and so does a collection, cut at 500 characters; any other object shows its class name. Edit a scalar and the preview plus envelope (subject, from, attachments) refresh live.
+Other objects and arrays stay read-only: an array shows as JSON, and so does a collection, cut at 500 characters; any other object shows its class name. Edit a scalar or pick an enum case and the preview plus envelope (subject, from, attachments) refresh live.
 
 Sample strings are guessed from the parameter name (`email` → `preview@example.com`, `name` → `Jane Doe`, `url` → `https://example.com`).
 
@@ -88,7 +89,7 @@ class OrderShipped extends Mailable implements HasPreviewExamples
 }
 ```
 
-An example wins over the parameter's default and the guessed sample; a value you edit in Details (scalars and datetimes) wins over the example. Parameters you leave out are filled as before. In Details, a value that comes from `previewExamples()` carries an "Example from code" badge until you edit it. `previewExamples()` is called once per request.
+An example wins over the parameter's default and the guessed sample; a value you edit in Details (scalars, datetimes and enums) wins over the example. Parameters you leave out are filled as before. In Details, a value that comes from `previewExamples()` carries an "Example from code" badge until you edit it. `previewExamples()` is called once per request.
 
 ### Sending tests
 

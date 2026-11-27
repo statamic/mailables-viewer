@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
@@ -12,8 +13,11 @@ use PHPUnit\Framework\Attributes\Test;
 use Statamic\Facades\User;
 use Statamic\Testing\Concerns\FakesRoles;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
+use Tests\Fixtures\Enums\Channel;
+use Tests\Fixtures\Enums\Tone;
 use Tests\Fixtures\Mail\AbstractMail;
 use Tests\Fixtures\Mail\BrokenMail;
+use Tests\Fixtures\Mail\EnumMail;
 use Tests\Fixtures\Mail\ExampleMail;
 use Tests\Fixtures\Mail\Nested\OrderShipped;
 use Tests\Fixtures\Mail\NotAMailable;
@@ -82,6 +86,7 @@ class MailablesTest extends TestCase
         $this->assertTrue($mailable->active);
         $this->assertSame([], $mailable->items);
         $this->assertInstanceOf(DateTimeInterface::class, $mailable->when);
+        $this->assertInstanceOf(DateTimeImmutable::class, $mailable->startsAt);
         $this->assertSame('default-value', $mailable->optional);
         $this->assertNull($mailable->nullable);
     }
@@ -94,6 +99,7 @@ class MailablesTest extends TestCase
             'count' => '7',
             'active' => 'false',
             'when' => '2026-08-19T20:48',
+            'startsAt' => '2026-09-01T09:30',
             'items' => ['ignored'],
         ]);
 
@@ -101,7 +107,66 @@ class MailablesTest extends TestCase
         $this->assertSame(7, $mailable->count);
         $this->assertFalse($mailable->active);
         $this->assertSame('2026-08-19 20:48:00', $mailable->when->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-09-01 09:30:00', $mailable->startsAt->format('Y-m-d H:i:s'));
         $this->assertSame([], $mailable->items);
+    }
+
+    #[Test]
+    public function factory_picks_an_enum_case_by_its_name()
+    {
+        $mailable = (new MailableFactory)->make(EnumMail::class, [
+            'tone' => 'Casual',
+            'channel' => 'Email',
+            'reply' => 'Formal',
+        ]);
+
+        $this->assertSame(Tone::Casual, $mailable->tone);
+        $this->assertSame(Channel::Email, $mailable->channel);
+        $this->assertSame(Tone::Formal, $mailable->reply);
+    }
+
+    #[Test]
+    public function factory_ignores_an_unknown_enum_case_and_empties_a_nullable_one()
+    {
+        $mailable = (new MailableFactory)->make(EnumMail::class, [
+            'tone' => 'Rude',
+            'channel' => 'Pigeon',
+            'copy' => '',
+        ]);
+
+        $this->assertSame(Tone::Formal, $mailable->tone);
+        $this->assertSame(Channel::Post, $mailable->channel);
+        $this->assertNull($mailable->copy);
+
+        $this->assertNull((new MailableFactory)->make(EnumMail::class, ['copy' => null])->copy);
+        $this->assertSame(Channel::Email, (new MailableFactory)->make(EnumMail::class)->copy);
+    }
+
+    #[Test]
+    public function details_offer_an_enums_cases_as_a_select()
+    {
+        $constructor = collect(Mailables::describe(EnumMail::class)->details->constructor)->keyBy('name');
+
+        $this->assertSame('select', $constructor['tone']->input);
+        $this->assertTrue($constructor['tone']->editable());
+        $this->assertSame('Formal', $constructor['tone']->value);
+        $this->assertSame([
+            ['label' => 'Formal', 'value' => 'Formal', 'backing_value' => 'formal'],
+            ['label' => 'Casual', 'value' => 'Casual', 'backing_value' => 'casual'],
+        ], $constructor['tone']->toArray()['options']);
+        $this->assertSame([
+            ['label' => 'Email', 'value' => 'Email', 'backing_value' => null],
+            ['label' => 'Post', 'value' => 'Post', 'backing_value' => null],
+        ], $constructor['channel']->toArray()['options']);
+        $this->assertFalse($constructor['tone']->nullable);
+
+        $this->assertSame('Post', $constructor['channel']->value);
+        $this->assertNull($constructor['reply']->value);
+        $this->assertTrue($constructor['reply']->nullable);
+
+        $scalar = collect(Mailables::describe(ScalarMail::class)->details->constructor)->keyBy('name');
+
+        $this->assertNull($scalar['name']->options);
     }
 
     #[Test]
@@ -130,14 +195,14 @@ class MailablesTest extends TestCase
     #[Test]
     public function details_mark_the_constructor_params_a_preview_example_filled()
     {
-        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+        $constructor = collect(Mailables::describe(ExampleMail::class)->details->constructor)->keyBy('name');
 
-        $this->assertTrue($constructor['name']['example']);
-        $this->assertTrue($constructor['items']['example']);
-        $this->assertFalse($constructor['email']['example']);
-        $this->assertSame(3, $constructor['count']['value']);
+        $this->assertTrue($constructor['name']->example);
+        $this->assertTrue($constructor['items']->example);
+        $this->assertFalse($constructor['email']->example);
+        $this->assertSame(3, $constructor['count']->value);
 
-        $scalar = collect(Mailables::describe(ScalarMail::class)['details']['constructor']);
+        $scalar = collect(Mailables::describe(ScalarMail::class)->details->constructor);
 
         $this->assertFalse($scalar->contains('example', true));
     }
@@ -145,10 +210,10 @@ class MailablesTest extends TestCase
     #[Test]
     public function details_show_a_collections_contents_and_any_other_objects_class()
     {
-        $constructor = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->keyBy('name');
+        $constructor = collect(Mailables::describe(ExampleMail::class)->details->constructor)->keyBy('name');
 
-        $this->assertSame('["new","sale"]', $constructor['labels']['value']);
-        $this->assertSame('stdClass', $constructor['plain']['value']);
+        $this->assertSame('["new","sale"]', $constructor['labels']->value);
+        $this->assertSame('stdClass', $constructor['plain']->value);
     }
 
     #[Test]
@@ -166,11 +231,11 @@ class MailablesTest extends TestCase
     {
         Mailables::register(ExampleMail::class);
 
-        $extras = collect(Mailables::describe(ExampleMail::class)['details']['constructor'])->firstWhere('name', 'extras');
+        $extras = collect(Mailables::describe(ExampleMail::class)->details->constructor)->firstWhere('name', 'extras');
 
-        $this->assertFalse($extras['editable']);
-        $this->assertNull($extras['input']);
-        $this->assertSame('["gift wrap"]', $extras['value']);
+        $this->assertFalse($extras->editable());
+        $this->assertNull($extras->input);
+        $this->assertSame('["gift wrap"]', $extras->value);
 
         $this
             ->actingAs($this->superUser())
@@ -200,25 +265,25 @@ class MailablesTest extends TestCase
         Mailables::register([WelcomeMail::class, QueuedMail::class, ScalarMail::class]);
 
         $welcome = Mailables::describe(WelcomeMail::class);
-        $this->assertFalse($welcome['details']['queued']);
-        $this->assertSame('HTML', $welcome['details']['template']['engine']);
+        $this->assertFalse($welcome->details->queued);
+        $this->assertSame('HTML', $welcome->details->template->engine);
 
         $queued = Mailables::describe(QueuedMail::class);
-        $this->assertTrue($queued['details']['queued']);
+        $this->assertTrue($queued->details->queued);
 
         $scalar = Mailables::describe(ScalarMail::class);
-        $params = collect($scalar['details']['constructor'])->keyBy('name');
-        $this->assertSame('preview@example.com', $params['email']['value']);
-        $this->assertSame('string', $params['email']['type']);
-        $this->assertTrue($params['email']['editable']);
-        $this->assertSame('email', $params['email']['input']);
-        $this->assertSame('Jane Doe', $params['name']['value']);
-        $this->assertSame('default-value', $params['optional']['value']);
-        $this->assertTrue($params['active']['editable']);
-        $this->assertSame('checkbox', $params['active']['input']);
-        $this->assertTrue($params['active']['value']);
-        $this->assertFalse($params['items']['editable']);
-        $this->assertSame('datetime-local', $params['when']['input']);
+        $params = collect($scalar->details->constructor)->keyBy('name');
+        $this->assertSame('preview@example.com', $params['email']->value);
+        $this->assertSame('string', $params['email']->type);
+        $this->assertTrue($params['email']->editable());
+        $this->assertSame('email', $params['email']->input);
+        $this->assertSame('Jane Doe', $params['name']->value);
+        $this->assertSame('default-value', $params['optional']->value);
+        $this->assertTrue($params['active']->editable());
+        $this->assertSame('checkbox', $params['active']->input);
+        $this->assertTrue($params['active']->value);
+        $this->assertFalse($params['items']->editable());
+        $this->assertSame('datetime-local', $params['when']->input);
     }
 
     #[Test]
@@ -245,13 +310,13 @@ PHP);
 
         Mailables::register(WelcomeMail::class);
 
-        $details = Mailables::describe(WelcomeMail::class)['details'];
+        $details = Mailables::describe(WelcomeMail::class)->details;
 
-        $this->assertSame('App\\Events\\UserRegistered', $details['events'][0]['event']);
-        $this->assertSame('App\\Listeners\\SendWelcomeMail', $details['events'][0]['listener']);
+        $this->assertSame('App\\Events\\UserRegistered', $details->events[0]->event);
+        $this->assertSame('App\\Listeners\\SendWelcomeMail', $details->events[0]->listener);
         $this->assertFalse(
-            collect($details['references'])->contains(
-                fn ($reference) => str_contains($reference['file'], 'SendWelcomeMail.php')
+            collect($details->references)->contains(
+                fn ($reference) => str_contains($reference->file, 'SendWelcomeMail.php')
             )
         );
     }
@@ -374,6 +439,26 @@ PHP);
     }
 
     #[Test]
+    public function preview_and_meta_use_a_picked_enum_case()
+    {
+        Mailables::register(EnumMail::class);
+
+        $values = ['tone' => 'Casual', 'channel' => 'Email', 'copy' => ''];
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.preview', ['mailable' => EnumMail::class, 'values' => $values]))
+            ->assertOk()
+            ->assertSee('Casual by Email, copy by nothing', false);
+
+        $this
+            ->actingAs($this->superUser())
+            ->get(cp_route('utilities.mailables.meta', ['mailable' => EnumMail::class, 'values' => $values]))
+            ->assertOk()
+            ->assertJson(['subject' => 'A casual hello', 'error' => null]);
+    }
+
+    #[Test]
     public function meta_returns_envelope_for_injected_values()
     {
         Mailables::register(ScalarMail::class);
@@ -440,6 +525,27 @@ PHP);
 
         Mail::assertSent(ScalarMail::class, function (ScalarMail $mail) {
             return $mail->name === 'Jack' && $mail->hasTo('tester@example.com');
+        });
+    }
+
+    #[Test]
+    public function send_uses_a_picked_enum_case()
+    {
+        Mail::fake();
+        Mailables::register(EnumMail::class);
+
+        $this
+            ->actingAs($this->superUser())
+            ->from(cp_route('utilities.mailables'))
+            ->post(cp_route('utilities.mailables.send'), [
+                'email' => 'tester@example.com',
+                'mailable' => EnumMail::class,
+                'values' => ['tone' => 'Casual', 'copy' => ''],
+            ])
+            ->assertRedirect(cp_route('utilities.mailables'));
+
+        Mail::assertSent(EnumMail::class, function (EnumMail $mail) {
+            return $mail->tone === Tone::Casual && $mail->copy === null;
         });
     }
 
