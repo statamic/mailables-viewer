@@ -14,39 +14,32 @@ use ReflectionNamedType;
 use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
+use Statamic\MailablesViewer\Data\ConstructorParameter;
+use Statamic\MailablesViewer\Data\EnumOption;
+use Statamic\MailablesViewer\Data\EventListener;
+use Statamic\MailablesViewer\Data\Inspection;
+use Statamic\MailablesViewer\Data\Reference;
+use Statamic\MailablesViewer\Data\Template;
 use Symfony\Component\Finder\SplFileInfo;
 
 class MailableInspector
 {
-    /**
-     * @return array{queued: bool, queue: string|null, template: array{engine: string|null, view: string|null, path: string|null, text_view: string|null}, constructor: array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>, events: array<int, array{event: string, listener: string}>, references: array<int, array{file: string, kind: string}>}
-     */
-    public function inspect(string $class, ?Mailable $mailable = null): array
+    public function inspect(string $class, ?Mailable $mailable = null): Inspection
     {
-        return [
-            'queued' => is_subclass_of($class, ShouldQueue::class) || $mailable instanceof ShouldQueue,
-            'queue' => $mailable && property_exists($mailable, 'queue') ? $mailable->queue : null,
-            'template' => $this->template($mailable),
-            'constructor' => $mailable ? $this->constructor($mailable) : [],
-            'events' => $this->events($class),
-            'references' => $this->references($class),
-        ];
+        return new Inspection(
+            queued: is_subclass_of($class, ShouldQueue::class) || $mailable instanceof ShouldQueue,
+            queue: $mailable && property_exists($mailable, 'queue') ? $mailable->queue : null,
+            template: $this->template($mailable),
+            constructor: $mailable ? $this->constructor($mailable) : [],
+            events: $this->events($class),
+            references: $this->references($class),
+        );
     }
 
-    /**
-     * @return array{engine: string|null, view: string|null, path: string|null, text_view: string|null}
-     */
-    protected function template(?Mailable $mailable): array
+    protected function template(?Mailable $mailable): Template
     {
-        $template = [
-            'engine' => null,
-            'view' => null,
-            'path' => null,
-            'text_view' => null,
-        ];
-
         if (! $mailable) {
-            return $template;
+            return new Template;
         }
 
         $markdown = $mailable->markdown;
@@ -66,13 +59,14 @@ class MailableInspector
         }
 
         $viewName = $markdown ?? $view;
+        $path = $viewName ? $this->viewPath($viewName) : null;
 
-        $template['view'] = $viewName;
-        $template['text_view'] = $text;
-        $template['path'] = $viewName ? $this->viewPath($viewName) : null;
-        $template['engine'] = $this->engine($markdown, $htmlString, $template['path']);
-
-        return $template;
+        return new Template(
+            engine: $this->engine($markdown, $htmlString, $path),
+            view: $viewName,
+            path: $path,
+            textView: $text,
+        );
     }
 
     protected function engine(mixed $markdown, bool $htmlString, ?string $path): ?string
@@ -108,7 +102,7 @@ class MailableInspector
     }
 
     /**
-     * @return array<int, array{name: string, label: string, type: string|null, value: mixed, input: string|null, editable: bool, options: array<int, array{label: string, value: string, backing_value: string|int|null}>|null, nullable: bool}>
+     * @return ConstructorParameter[]
      */
     protected function constructor(Mailable $mailable): array
     {
@@ -125,16 +119,15 @@ class MailableInspector
                 $input = $this->inputFor($parameter);
                 $value = $mailable->{$name} ?? null;
 
-                return [
-                    'name' => $name,
-                    'label' => Str::headline($name),
-                    'type' => $type,
-                    'value' => $input ? $this->editValue($value, $input) : $this->stringify($value),
-                    'input' => $input,
-                    'editable' => $input !== null,
-                    'options' => $input === 'select' ? $this->enumOptions($type) : null,
-                    'nullable' => $parameter->allowsNull(),
-                ];
+                return new ConstructorParameter(
+                    name: $name,
+                    label: Str::headline($name),
+                    type: $type,
+                    value: $input ? $this->editValue($value, $input) : $this->stringify($value),
+                    input: $input,
+                    options: $input === 'select' ? $this->enumOptions($type) : null,
+                    nullable: $parameter->allowsNull(),
+                );
             })
             ->all();
     }
@@ -144,15 +137,15 @@ class MailableInspector
      * with a backed case's value alongside it.
      *
      * @param  class-string<\UnitEnum>  $enum
-     * @return array<int, array{label: string, value: string, backing_value: string|int|null}>
+     * @return EnumOption[]
      */
     protected function enumOptions(string $enum): array
     {
-        return array_map(fn (\UnitEnum $case) => [
-            'label' => $case->name,
-            'value' => $case->name,
-            'backing_value' => $case instanceof \BackedEnum ? $case->value : null,
-        ], $enum::cases());
+        return array_map(fn (\UnitEnum $case) => new EnumOption(
+            label: $case->name,
+            value: $case->name,
+            backingValue: $case instanceof \BackedEnum ? $case->value : null,
+        ), $enum::cases());
     }
 
     protected function inputFor(ReflectionParameter $parameter): ?string
@@ -241,7 +234,7 @@ class MailableInspector
     }
 
     /**
-     * @return array<int, array{event: string, listener: string}>
+     * @return EventListener[]
      */
     protected function events(string $class): array
     {
@@ -262,19 +255,16 @@ class MailableInspector
                     return null;
                 }
 
-                return [
-                    'event' => $event,
-                    'listener' => $listener,
-                ];
+                return new EventListener($event, $listener);
             })
             ->filter()
-            ->unique(fn (array $item) => $item['event'].$item['listener'])
+            ->unique(fn (EventListener $item) => $item->event.$item->listener)
             ->values()
             ->all();
     }
 
     /**
-     * @return array<int, array{file: string, kind: string}>
+     * @return Reference[]
      */
     protected function references(string $class): array
     {
@@ -290,10 +280,10 @@ class MailableInspector
 
                 return $class && $eventListeners->contains($class);
             })
-            ->map(fn (SplFileInfo $file) => [
-                'file' => $this->relativePath($file->getPathname()),
-                'kind' => $this->referenceKind($file),
-            ])
+            ->map(fn (SplFileInfo $file) => new Reference(
+                file: $this->relativePath($file->getPathname()),
+                kind: $this->referenceKind($file),
+            ))
             ->values()
             ->all();
     }
